@@ -20,7 +20,12 @@ export default function Tasks() {
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
   const [subtaskTitle, setSubtaskTitle] = useState("");
-  useEffect(() => { const id = location.pathname.split("/")[2]; const task = tasks.find(item => item.serverId === id); if (task) { setView(task.done ? "concluidas" : "todas"); setEditing(task.id); } }, [location.pathname, tasks]);
+  useEffect(() => {
+    const id = location.pathname.split("/")[2];
+    if (!id) return;
+    const task = tasks.find(item => item.serverId === id);
+    if (task) { setView(task.done ? "concluidas" : "todas"); setEditing(task.id); }
+  }, [location.pathname, tasks]);
 
   const todayStr = today();
 
