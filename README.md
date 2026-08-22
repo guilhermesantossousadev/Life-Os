@@ -180,3 +180,6 @@ Configuration** como Site URL e Redirect URL. Valide `/health`, autenticação, 
 em uma conta exclusiva de teste.
 
 O repositório está preparado para deploy, mas não contém credenciais nem comprova que uma instância cloud tenha sido publicada.
+
+O checklist completo para retomar e concluir a publicação está em
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
