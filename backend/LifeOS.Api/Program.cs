@@ -40,7 +40,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateIssuer = true, ValidIssuer = issuer,
         ValidateAudience = true, ValidAudience = builder.Configuration["Supabase:JwtAudience"] ?? "authenticated",
         ValidateLifetime = true, ValidateIssuerSigningKey = true, ClockSkew = TimeSpan.FromSeconds(30),
-        NameClaimType = "sub"
+        NameClaimType = "sub",
+        IssuerValidator = (tokenIssuer, _, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(issuer) ||
+                !string.Equals(tokenIssuer?.TrimEnd('/'), issuer, StringComparison.Ordinal))
+            {
+                throw new SecurityTokenInvalidIssuerException("O emissor do token não corresponde ao projeto Supabase configurado.");
+            }
+
+            return issuer;
+        }
     };
 });
 builder.Services.AddAuthorization();
@@ -63,6 +73,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+app.Logger.LogInformation("Supabase JWT issuer configured as {Issuer}", issuer);
 app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.Use(async (context, next) =>
