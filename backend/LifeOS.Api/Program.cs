@@ -29,8 +29,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpClient<IPrivateFileStorage, SupabaseStorage>();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-var supabaseUrl = builder.Configuration["Supabase:Url"]?.TrimEnd('/');
-var issuer = builder.Configuration["Supabase:JwtIssuer"]?.TrimEnd('/') ?? (supabaseUrl is null ? null : $"{supabaseUrl}/auth/v1");
+var configuredSupabaseUrl = builder.Configuration["Supabase:Url"];
+var supabaseUrl = string.IsNullOrWhiteSpace(configuredSupabaseUrl) ? null : configuredSupabaseUrl.Trim().TrimEnd('/');
+var configuredIssuer = builder.Configuration["Supabase:JwtIssuer"];
+var issuer = string.IsNullOrWhiteSpace(configuredIssuer)
+    ? (supabaseUrl is null ? null : $"{supabaseUrl}/auth/v1")
+    : configuredIssuer.Trim().TrimEnd('/');
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     if (!string.IsNullOrWhiteSpace(issuer)) options.Authority = issuer;
