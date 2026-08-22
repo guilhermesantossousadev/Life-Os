@@ -1,5 +1,7 @@
 import { Briefcase, Award, ChevronRight, CheckCircle, Clock, Circle } from "lucide-react";
 import { useData } from "../context/DataContext";
+import CareerManager from "../components/CareerManager";
+import { formatCivilDate } from "../lib/dates";
 
 const levelColors: Record<string, { bg: string; text: string }> = {
   "Aprendendo": { bg: "#FEF3C7", text: "#92400E" },
@@ -19,7 +21,7 @@ export default function Career() {
   const career = data.career;
   return (
     <div className="p-6" style={{ fontFamily: "var(--font-ui)" }}>
-      <h1 className="text-[22px] font-semibold text-[var(--foreground)] mb-6">Carreira</h1>
+      <div className="flex items-center justify-between mb-6"><h1 className="text-[22px] font-semibold text-[var(--foreground)]">Carreira</h1><CareerManager /></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl">
         {/* Current position */}
@@ -35,7 +37,7 @@ export default function Career() {
             </div>
             <div className="pt-3 border-t border-[var(--border)] space-y-2">
               {[
-                { label: "Desde", value: new Date(career.current.start).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) },
+                { label: "Desde", value: formatCivilDate(career.current.start, { month: "long", year: "numeric" }) },
                 { label: "Local", value: career.current.location },
                 { label: "Salário", value: career.current.salary.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) },
               ].map(item => (
@@ -122,8 +124,8 @@ export default function Career() {
                   <p className="text-[12px] text-[var(--muted-foreground)]">{(job as any).company}</p>
                 </div>
                 <div className="text-right text-[12px] text-[var(--muted-foreground)]">
-                  <p>{new Date((job as any).start).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</p>
-                  <p>{(job as any).end ? new Date((job as any).end).toLocaleDateString("pt-BR", { month: "short", year: "numeric" }) : "Atual"}</p>
+                  <p>{formatCivilDate((job as any).start, { month: "short", year: "numeric" })}</p>
+                  <p>{(job as any).end ? formatCivilDate((job as any).end, { month: "short", year: "numeric" }) : "Atual"}</p>
                 </div>
                 {i === 0 && <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--primary)] bg-[var(--accent)] px-2 py-0.5 rounded-full self-start flex-shrink-0">Atual</span>}
               </div>

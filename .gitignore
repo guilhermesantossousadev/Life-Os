@@ -4,6 +4,14 @@ build/
 .cache/
 .vite/
 .env*
+!.env.example
+!.env.docker.example
+!backend/.env.example
+**/bin/
+**/obj/
+.playwright/
+playwright-report/
+test-results/
 *.tsbuildinfo
 *.log
 .DS_Store

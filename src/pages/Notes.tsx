@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Search, Star, FileText, Plus, Trash2 } from "lucide-react";
 import { openQuickAdd } from "../components/QuickAddModal";
 import { today, useData } from "../context/DataContext";
+import ReactMarkdown from "react-markdown";
+import { api } from "../services/api";
 
 const catColors: Record<string, string> = {
   Estudos: "#7C3AED", Projetos: "#2563EB", Trabalho: "#059669",
@@ -9,11 +12,15 @@ const catColors: Record<string, string> = {
 };
 
 export default function Notes() {
-  const { data, setData } = useData();
+  const location = useLocation();
+  const { data, setData, saveStatus, reload } = useData();
   const notes = data.notes;
   const [selected, setSelected] = useState(data.notes[0]?.id ?? 0);
   const [search, setSearch] = useState("");
   const [filterFav, setFilterFav] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const [newTag, setNewTag] = useState("");
+  useEffect(() => { const id = location.pathname.split("/")[2]; const note = notes.find(item => item.serverId === id); if (note) setSelected(note.id); }, [location.pathname, notes]);
 
   const filtered = notes.filter(n => {
     const matchSearch = n.title.toLowerCase().includes(search.toLowerCase()) || n.content.toLowerCase().includes(search.toLowerCase());
@@ -22,18 +29,6 @@ export default function Notes() {
   });
 
   const selectedNote = notes.find(n => n.id === selected);
-
-  const renderContent = (content: string) => {
-    return content.split("\n").map((line, i) => {
-      if (line.startsWith("## ")) return <h2 key={i} className="text-[16px] font-semibold text-[var(--foreground)] mt-4 mb-2">{line.slice(3)}</h2>;
-      if (line.startsWith("# ")) return <h1 key={i} className="text-[18px] font-bold text-[var(--foreground)] mt-4 mb-2">{line.slice(2)}</h1>;
-      if (line.startsWith("- ")) return <li key={i} className="text-[13.5px] text-[var(--foreground)] ml-4 list-disc">{line.slice(2)}</li>;
-      if (line.startsWith("```")) return <div key={i} className="bg-[var(--secondary)] rounded-lg p-3 mt-2 mb-2 font-mono text-[12px] text-[var(--foreground)]">{""}</div>;
-      if (line.match(/^\d+\. /)) return <li key={i} className="text-[13.5px] text-[var(--foreground)] ml-4 list-decimal">{line.replace(/^\d+\. /, "")}</li>;
-      if (line === "") return <br key={i} />;
-      return <p key={i} className="text-[13.5px] text-[var(--foreground)] leading-relaxed">{line}</p>;
-    });
-  };
 
   return (
     <div className="flex h-full" style={{ fontFamily: "var(--font-ui)" }}>
@@ -100,11 +95,13 @@ export default function Notes() {
                 {selectedNote.category}
               </span>
               {selectedNote.tags.map(tag => (
-                <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--muted-foreground)]">#{tag}</span>
+                <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--muted-foreground)]">#{tag} {selectedNote.serverId && selectedNote.tagIds?.[tag] && <button aria-label={`Remover tag ${tag}`} onClick={async () => { await api.delete(`/api/v1/notes/${selectedNote.serverId}/tags/${selectedNote.tagIds?.[tag]}`); await reload(); }}>×</button>}</span>
               ))}
-              <span className="text-[11px] text-[var(--muted-foreground)] ml-auto">Editada em {selectedNote.updated}</span>
+              {selectedNote.serverId && <form onSubmit={async event => { event.preventDefault(); if (!newTag.trim()) return; const tag = await api.post<{ id: string }>("/api/v1/tags/ensure", { name: newTag }); await api.post(`/api/v1/notes/${selectedNote.serverId}/tags/${tag.id}`); setNewTag(""); await reload(); }} className="flex items-center gap-1"><input aria-label="Nova tag" value={newTag} onChange={event => setNewTag(event.target.value)} placeholder="tag" className="w-16 bg-transparent text-[11px] border-b" /><button className="text-[11px] text-[var(--primary)]">+</button></form>}
+              <span className={`text-[11px] ml-auto ${saveStatus === "error" ? "text-red-600" : "text-[var(--muted-foreground)]"}`}>{saveStatus === "saving" ? "Salvando..." : saveStatus === "error" ? "Erro ao salvar" : saveStatus === "saved" ? "Salvo" : `Editada em ${selectedNote.updated}`}</span>
+              <button onClick={() => setPreview(value => !value)} className="text-[11px] text-[var(--primary)]">{preview ? "Editar" : "Visualizar Markdown"}</button>
             </div>
-            <textarea aria-label="Conteúdo da nota" value={selectedNote.content} onChange={event => setData(current => ({ ...current, notes: current.notes.map(note => note.id === selectedNote.id ? { ...note, content: event.target.value, updated: today() } : note) }))} className="w-full min-h-[420px] resize-none bg-transparent text-[13.5px] leading-relaxed" />
+            {preview ? <article className="prose prose-sm max-w-none min-h-[420px]"><ReactMarkdown>{selectedNote.content}</ReactMarkdown></article> : <textarea aria-label="Conteúdo da nota" value={selectedNote.content} onChange={event => setData(current => ({ ...current, notes: current.notes.map(note => note.id === selectedNote.id ? { ...note, content: event.target.value, updated: today() } : note) }))} className="w-full min-h-[420px] resize-none bg-transparent text-[13.5px] leading-relaxed" />}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-[var(--muted-foreground)]">

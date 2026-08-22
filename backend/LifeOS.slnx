@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="LifeOS.Api/LifeOS.Api.csproj" />
+  <Project Path="LifeOS.Application/LifeOS.Application.csproj" />
+  <Project Path="LifeOS.Domain/LifeOS.Domain.csproj" />
+  <Project Path="LifeOS.Infrastructure/LifeOS.Infrastructure.csproj" />
+  <Project Path="LifeOS.Tests/LifeOS.Tests.csproj" />
+</Solution>

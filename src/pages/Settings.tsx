@@ -1,21 +1,32 @@
 import { useRef, useState } from "react";
 import { User, Palette, Bell, Link, Tag, Database } from "lucide-react";
 import { useData } from "../context/DataContext";
+import { useAuth } from "../context/AuthContext";
+import { api } from "../services/api";
+import { supabase } from "../services/supabase";
 
 type Tab = "perfil" | "preferencias" | "categorias" | "notificacoes" | "integracoes" | "dados";
 
 export default function Settings() {
   const [tab, setTab] = useState<Tab>("perfil");
   const { data, setData, exportData, importData, resetData } = useData();
+  const { signOut } = useAuth();
   const [name, setName] = useState(data.user.name);
   const [email, setEmail] = useState(data.user.email);
   const [category, setCategory] = useState("");
   const [saved, setSaved] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
   const backupRef = useRef<HTMLInputElement>(null);
 
-  const save = () => {
-    setData(current => ({ ...current, user: { ...current.user, name, email, avatar: current.user.avatar.startsWith("data:") ? current.user.avatar : name.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase() } }));
+  const save = async () => {
+    setFeedback(null);
+    if (email !== data.user.email) {
+      const { error } = await supabase.auth.updateUser({ email });
+      if (error) { setFeedback(error.message); return; }
+    }
+    setData(current => ({ ...current, user: { ...current.user, name, email, avatar: /^(data:|https?:)/.test(current.user.avatar) ? current.user.avatar : name.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase() } }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -60,9 +71,9 @@ export default function Settings() {
             <div>
               <h2 className="text-[15px] font-semibold text-[var(--foreground)] mb-5">Informações pessoais</h2>
               <div className="flex items-center gap-5 mb-6 pb-6 border-b border-[var(--border)]">
-                <div className="w-16 h-16 rounded-full bg-[var(--primary)] flex items-center justify-center text-white text-[20px] font-bold overflow-hidden">{data.user.avatar.startsWith("data:") ? <img src={data.user.avatar} alt="Avatar" className="w-full h-full object-cover" /> : data.user.avatar}</div>
+                <div className="w-16 h-16 rounded-full bg-[var(--primary)] flex items-center justify-center text-white text-[20px] font-bold overflow-hidden">{/^(data:|https?:)/.test(data.user.avatar) ? <img src={data.user.avatar} alt="Avatar" className="w-full h-full object-cover" /> : data.user.avatar}</div>
                 <div>
-                  <input ref={avatarRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (!file || file.size > 2_000_000) return; const reader = new FileReader(); reader.onload = () => setData(current => ({ ...current, user: { ...current.user, avatar: String(reader.result) } })); reader.readAsDataURL(file); }} />
+                  <input ref={avatarRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={async event => { const file = event.target.files?.[0]; if (!file) return; const body = new FormData(); body.append("file", file); try { const result = await api.post<{ url: string }>("/api/v1/profile/avatar", body); setData(current => ({ ...current, user: { ...current.user, avatar: result.url } })); setFeedback("Avatar atualizado."); } catch (reason) { setFeedback(reason instanceof Error ? reason.message : "Falha no upload."); } }} />
                   <button onClick={() => avatarRef.current?.click()} className="text-[13px] text-[var(--primary)] hover:underline">Alterar foto</button>
                   <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">JPG, PNG até 2MB</p>
                 </div>
@@ -87,11 +98,13 @@ export default function Settings() {
                 </div>
               </div>
               <div className="mt-6 flex items-center gap-3">
-                <button onClick={save} className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-[13px] font-medium hover:bg-blue-700 transition-colors">
+                <button onClick={() => void save()} className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-[13px] font-medium hover:bg-blue-700 transition-colors">
                   Salvar alterações
                 </button>
                 {saved && <span className="text-[12px] text-emerald-600">✓ Salvo com sucesso</span>}
+                <button onClick={() => void signOut()} className="ml-auto px-4 py-2 rounded-lg border border-red-200 text-red-600 text-[13px]">Sair</button>
               </div>
+              {feedback && <p role="status" className="mt-3 text-[12px] text-[var(--muted-foreground)]">{feedback}</p>}
             </div>
           )}
 
@@ -177,11 +190,11 @@ export default function Settings() {
               <p className="text-[13px] text-[var(--muted-foreground)] mb-5">Conecte o Life OS com seus serviços favoritos.</p>
               <div className="space-y-3">
                 {[
-                  { name: "Google Calendar", desc: "Sincronize eventos bidirecionalmente", status: "Disponível em breve" },
-                  { name: "Google Drive", desc: "Armazene documentos na nuvem", status: "Disponível em breve" },
-                  { name: "Gmail", desc: "Crie tarefas a partir de emails", status: "Planejado" },
-                  { name: "Bancos (Open Finance)", desc: "Importe transações automaticamente", status: "Planejado" },
-                  { name: "Notion", desc: "Importe notas e projetos", status: "Planejado" },
+                  { name: "Google Calendar", desc: "Sincronize eventos bidirecionalmente", status: "Em breve" },
+                  { name: "Google Drive", desc: "Armazene documentos na nuvem", status: "Em breve" },
+                  { name: "Gmail", desc: "Crie tarefas a partir de emails", status: "Em breve" },
+                  { name: "Bancos (Open Finance)", desc: "Importe transações automaticamente", status: "Em breve" },
+                  { name: "Notion", desc: "Importe notas e projetos", status: "Em breve" },
                 ].map(int => (
                   <div key={int.name} className="flex items-center justify-between p-4 rounded-xl border border-[var(--border)]">
                     <div>
@@ -199,12 +212,14 @@ export default function Settings() {
             <div>
               <h2 className="text-[15px] font-semibold mb-2">Backup dos dados</h2>
               <p className="text-[13px] text-[var(--muted-foreground)] mb-5">Exporte tudo para JSON ou restaure um backup anterior.</p>
-              <input ref={backupRef} type="file" accept="application/json" className="hidden" onChange={async event => { const file = event.target.files?.[0]; if (!file) return; try { await importData(file); setSaved(true); } catch (error) { alert(error instanceof Error ? error.message : "Falha ao importar"); } }} />
-              <div className="flex flex-wrap gap-2"><button onClick={exportData} className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-[13px]">Exportar backup</button><button onClick={() => backupRef.current?.click()} className="px-4 py-2 rounded-lg border border-[var(--border)] text-[13px]">Importar backup</button><button onClick={() => confirm("Restaurar os dados de demonstração?") && resetData()} className="px-4 py-2 rounded-lg border border-red-200 text-red-600 text-[13px]">Restaurar padrão</button></div>
+              <input ref={backupRef} type="file" accept="application/json" className="hidden" onChange={async event => { const file = event.target.files?.[0]; if (!file) return; try { await importData(file); setSaved(true); setFeedback("Backup importado e enviado para a conta."); } catch (error) { setFeedback(error instanceof Error ? error.message : "Falha ao importar"); } }} />
+              <div className="flex flex-wrap gap-2"><button onClick={exportData} className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-[13px]">Exportar backup</button><button onClick={() => backupRef.current?.click()} className="px-4 py-2 rounded-lg border border-[var(--border)] text-[13px]">Importar backup</button><button onClick={() => setConfirmReset(true)} className="px-4 py-2 rounded-lg border border-red-200 text-red-600 text-[13px]">Apagar meus dados</button></div>
+              {feedback && <p role="status" className="mt-3 text-sm text-[var(--muted-foreground)]">{feedback}</p>}
             </div>
           )}
         </div>
       </div>
+      {confirmReset && <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4"><div role="alertdialog" aria-modal="true" aria-labelledby="reset-title" className="w-full max-w-md bg-white rounded-2xl p-6"><h2 id="reset-title" className="text-lg font-semibold">Apagar dados da conta?</h2><p className="text-sm text-[var(--muted-foreground)] mt-2">Esta ação exclui os registros organizacionais da API. Documentos devem ser excluídos individualmente para garantir a remoção do arquivo.</p><div className="mt-5 flex justify-end gap-2"><button onClick={() => setConfirmReset(false)} className="px-4 py-2 border rounded-lg text-sm">Cancelar</button><button onClick={() => { resetData(); setConfirmReset(false); }} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm">Apagar</button></div></div></div>}
     </div>
   );
 }

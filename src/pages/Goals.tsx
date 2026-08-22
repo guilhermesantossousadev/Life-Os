@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Plus, Target, ChevronRight, Calendar } from "lucide-react";
 import { openQuickAdd } from "../components/QuickAddModal";
-import { useData } from "../context/DataContext";
+import { nextId, useData } from "../context/DataContext";
+import { formatCivilDate } from "../lib/dates";
 
 const catColors: Record<string, string> = {
   Financeira: "#059669",
@@ -17,16 +19,16 @@ function fmt(v: number) {
 }
 
 export default function Goals() {
+  const location = useLocation();
   const { data, setData } = useData();
   const goals = data.goals;
   const [selected, setSelected] = useState<number | null>(null);
+  const [newAction, setNewAction] = useState("");
+  useEffect(() => { const id = location.pathname.split("/")[2]; const goal = goals.find(item => item.serverId === id); if (goal) setSelected(goal.id); }, [goals, location.pathname]);
 
   const selectedGoal = goals.find(g => g.id === selected);
 
-  const getPct = (g: typeof goals[0]) =>
-    g.unit === "BRL" ? Math.round((g.current / g.target) * 100)
-    : g.unit === "%" ? g.current
-    : Math.round((g.current / g.target) * 100);
+  const getPct = (g: typeof goals[0]) => Math.min(100, Math.max(0, g.target > 0 ? Math.round((g.current / g.target) * 100) : 0));
 
   return (
     <div className="p-6" style={{ fontFamily: "var(--font-ui)" }}>
@@ -80,7 +82,7 @@ export default function Goals() {
               {goal.deadline && (
                 <div className="mt-3 flex items-center gap-1 text-[11px] text-[var(--muted-foreground)]">
                   <Calendar size={10} />
-                  <span>Prazo: {new Date(goal.deadline).toLocaleDateString("pt-BR")}</span>
+                  <span>Prazo: {formatCivilDate(goal.deadline)}</span>
                 </div>
               )}
             </div>
@@ -92,7 +94,7 @@ export default function Goals() {
       {selectedGoal && (
         <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-[var(--border)] shadow-xl z-40 overflow-y-auto p-6" style={{ fontFamily: "var(--font-ui)" }}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-[16px] font-semibold text-[var(--foreground)]">{selectedGoal.title}</h2>
+            <input aria-label="Título da meta" value={selectedGoal.title} onChange={event => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, title: event.target.value } : goal) }))} className="text-[16px] font-semibold bg-transparent flex-1" />
             <button onClick={() => setSelected(null)} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">✕</button>
           </div>
 
@@ -100,7 +102,7 @@ export default function Goals() {
             {selectedGoal.category}
           </span>
 
-          <p className="text-[13px] text-[var(--muted-foreground)] mb-6">{selectedGoal.description}</p>
+          <label className="field-label mb-5">Descrição<textarea value={selectedGoal.description} onChange={event => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, description: event.target.value } : goal) }))} className="field-input min-h-20" /></label>
 
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
@@ -119,25 +121,25 @@ export default function Goals() {
           </div>
 
           <label className="field-label mb-5">Atualizar progresso
-            <input type="number" min="0" max={selectedGoal.target} value={selectedGoal.current} onChange={event => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, current: Number(event.target.value) } : goal) }))} className="field-input" />
+            <input type="number" min="0" value={selectedGoal.current} onChange={event => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, current: Math.max(0, Number(event.target.value)) } : goal) }))} className="field-input" />
           </label>
+          <div className="grid grid-cols-2 gap-3 mb-5"><label className="field-label">Alvo<input type="number" min="0.01" step="0.01" value={selectedGoal.target} onChange={event => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, target: Math.max(0.01, Number(event.target.value)) } : goal) }))} className="field-input" /></label><label className="field-label">Prazo<input type="date" value={selectedGoal.deadline} onChange={event => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, deadline: event.target.value } : goal) }))} className="field-input" /></label></div>
+          {selectedGoal.current > selectedGoal.target && <p className="text-xs text-emerald-700 mb-4">Meta superada em {selectedGoal.current - selectedGoal.target} {selectedGoal.unit}. O progresso visual permanece normalizado em 100%.</p>}
 
           {selectedGoal.deadline && (
             <div className="p-4 rounded-xl bg-[var(--secondary)] mb-6">
               <p className="text-[11px] text-[var(--muted-foreground)] uppercase tracking-wider mb-1">Prazo</p>
-              <p className="text-[14px] font-medium text-[var(--foreground)]">{new Date(selectedGoal.deadline).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}</p>
+              <p className="text-[14px] font-medium text-[var(--foreground)]">{formatCivilDate(selectedGoal.deadline, { day: "numeric", month: "long", year: "numeric" })}</p>
             </div>
           )}
 
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-3">Próximas ações</p>
             <div className="space-y-2">
-              {selectedGoal.actions.map((a, i) => (
-                <div key={i} className="flex items-center gap-2.5 p-3 rounded-lg bg-[var(--secondary)]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] flex-shrink-0" />
-                  <span className="text-[13px] text-[var(--foreground)]">{a}</span>
-                </div>
+              {(selectedGoal.actionRecords ?? []).map(action => (
+                <div key={action.id} className="flex items-center gap-2.5 p-3 rounded-lg bg-[var(--secondary)]"><input type="checkbox" checked={action.done} onChange={() => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, actionRecords: (goal.actionRecords ?? []).map(item => item.id === action.id ? { ...item, done: !item.done } : item) } : goal) }))} /><input aria-label="Ação da meta" value={action.title} onChange={event => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, actionRecords: (goal.actionRecords ?? []).map(item => item.id === action.id ? { ...item, title: event.target.value } : item) } : goal) }))} className="flex-1 bg-transparent text-[13px]" /><button aria-label="Excluir ação" onClick={() => setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, actionRecords: (goal.actionRecords ?? []).filter(item => item.id !== action.id) } : goal) }))} className="text-red-500">×</button></div>
               ))}
+              <div className="flex gap-2"><input value={newAction} onChange={event => setNewAction(event.target.value)} placeholder="Nova ação" className="field-input" /><button onClick={() => { if (!newAction.trim()) return; setData(current => ({ ...current, goals: current.goals.map(goal => goal.id === selectedGoal.id ? { ...goal, actionRecords: [...(goal.actionRecords ?? []), { id: nextId(goal.actionRecords ?? []), title: newAction.trim(), done: false }] } : goal) })); setNewAction(""); }} className="px-3 bg-[var(--primary)] text-white rounded-lg text-xs">Adicionar</button></div>
             </div>
           </div>
           <button onClick={() => { setData(current => ({ ...current, goals: current.goals.filter(goal => goal.id !== selectedGoal.id) })); setSelected(null); }} className="mt-6 text-[12px] text-red-500 hover:underline">Excluir meta</button>

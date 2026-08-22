@@ -2,6 +2,9 @@ import { useState } from "react";
 import { TrendingUp, TrendingDown, CreditCard, Wallet, Plus, Trash2 } from "lucide-react";
 import { openQuickAdd } from "../components/QuickAddModal";
 import { useData } from "../context/DataContext";
+import { today } from "../context/DataContext";
+import FinanceManager from "../components/FinanceManager";
+import { api } from "../services/api";
 
 type Tab = "visao" | "transacoes" | "contas" | "cartoes" | "parcelas" | "dividas" | "orcamento";
 
@@ -16,12 +19,13 @@ const catEmoji: Record<string, string> = {
 
 export default function Finances() {
   const [tab, setTab] = useState<Tab>("visao");
-  const { data, setData } = useData();
+  const { data, setData, reload } = useData();
   const finances = data.finances;
+  const currentMonth = today().slice(0, 7);
 
   const totalBalance = finances.accounts.reduce((s, a) => s + a.balance, 0);
-  const monthIncome = finances.transactions.filter(t => t.type === "receita").reduce((s, t) => s + t.value, 0);
-  const monthExpense = Math.abs(finances.transactions.filter(t => t.type === "despesa").reduce((s, t) => s + t.value, 0));
+  const monthIncome = finances.transactions.filter(t => t.type === "receita" && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.value, 0);
+  const monthExpense = Math.abs(finances.transactions.filter(t => t.type === "despesa" && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.value, 0));
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "visao", label: "Visão geral" },
@@ -37,9 +41,9 @@ export default function Finances() {
     <div className="p-6" style={{ fontFamily: "var(--font-ui)" }}>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[22px] font-semibold text-[var(--foreground)]">Finanças</h1>
-        <button onClick={() => openQuickAdd("expense")} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg bg-[var(--primary)] text-white hover:bg-blue-700">
+        <div className="flex gap-2"><FinanceManager /><button onClick={() => openQuickAdd("expense")} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg bg-[var(--primary)] text-white hover:bg-blue-700">
           <Plus size={14} /> Registrar
-        </button>
+        </button></div>
       </div>
 
       {/* Sub-tabs */}
@@ -142,7 +146,7 @@ export default function Finances() {
       {tab === "transacoes" && (
         <div className="max-w-3xl bg-white rounded-xl border border-[var(--border)] overflow-hidden">
           <div className="p-4 border-b border-[var(--border)] flex items-center gap-3">
-            <span className="text-[13px] text-[var(--muted-foreground)]">Agosto 2026</span>
+            <span className="text-[13px] text-[var(--muted-foreground)]">{new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date())}</span>
           </div>
           <div className="divide-y divide-[var(--border)]">
             {finances.transactions.map(t => (
@@ -182,7 +186,7 @@ export default function Finances() {
                   <p className="text-[11px] text-[var(--muted-foreground)]">{acc.type}</p>
                 </div>
               </div>
-              <label className="text-[10px] text-[var(--muted-foreground)]">Saldo editável<input aria-label={`Saldo de ${acc.name}`} type="number" value={acc.balance} onChange={event => setData(current => ({ ...current, finances: { ...current.finances, accounts: current.finances.accounts.map(item => item.id === acc.id ? { ...item, balance: Number(event.target.value) } : item) } }))} className="mt-1 w-full bg-transparent text-[22px] font-bold" style={{ color: acc.color, fontFamily: "var(--font-mono-family)" }} /></label>
+              <label className="text-[10px] text-[var(--muted-foreground)]">Saldo inicial<input aria-label={`Saldo inicial de ${acc.name}`} type="number" value={acc.initialBalance ?? acc.balance} onChange={event => setData(current => ({ ...current, finances: { ...current.finances, accounts: current.finances.accounts.map(item => item.id === acc.id ? { ...item, initialBalance: Number(event.target.value), balance: item.balance + Number(event.target.value) - (item.initialBalance ?? item.balance) } : item) } }))} className="mt-1 w-full bg-transparent text-[22px] font-bold" style={{ color: acc.color, fontFamily: "var(--font-mono-family)" }} /></label>
             </div>
           ))}
         </div>
@@ -262,6 +266,7 @@ export default function Finances() {
                     {inst.current}/{inst.total_installments} · Faltam {fmt(remaining * inst.installment)}
                   </span>
                 </div>
+                {inst.serverId && <button onClick={async () => { await api.post(`/api/v1/finances/installment-purchases/${inst.serverId}/settle`); await reload(); }} className="mt-3 text-xs text-[var(--primary)]">Quitar parcelas restantes</button>}
               </div>
             );
           })}
@@ -303,6 +308,7 @@ export default function Finances() {
                     <div className="h-full rounded-full bg-emerald-500" style={{ width: `${paidPct}%` }} />
                   </div>
                 </div>
+                {d.serverId && data.finances.accounts[0]?.serverId && <button onClick={async () => { await api.post(`/api/v1/finances/debts/${d.serverId}/payments`, { amount: Math.min(d.installment, d.remaining), accountId: data.finances.accounts[0].serverId, date: today() }); await reload(); }} className="mt-3 text-xs text-[var(--primary)]">Registrar pagamento de {fmt(Math.min(d.installment, d.remaining))}</button>}
               </div>
             );
           })}
@@ -313,7 +319,7 @@ export default function Finances() {
       {tab === "orcamento" && (
         <div className="max-w-2xl bg-white rounded-xl border border-[var(--border)] overflow-hidden">
           <div className="p-5 border-b border-[var(--border)]">
-            <h2 className="text-[14px] font-semibold text-[var(--foreground)]">Orçamento — Agosto 2026</h2>
+            <h2 className="text-[14px] font-semibold text-[var(--foreground)]">Orçamento — {new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date())}</h2>
           </div>
           <div className="divide-y divide-[var(--border)]">
             {finances.budgets.map(b => {

@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+Templates/Figma
+backend/**/bin
+backend/**/obj
+playwright-report
+test-results
+.env
+backend/.env

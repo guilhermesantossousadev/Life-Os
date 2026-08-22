@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Plus, CheckSquare, ChevronRight, Tag } from "lucide-react";
 import { openQuickAdd } from "../components/QuickAddModal";
 import { useData } from "../context/DataContext";
 import { nextId } from "../context/DataContext";
+import { formatCivilDate } from "../lib/dates";
+import { api } from "../services/api";
 
 const statusColor: Record<string, { bg: string; text: string; dot: string }> = {
   "Em andamento": { bg: "#EFF6FF", text: "#1D4ED8", dot: "#2563EB" },
@@ -12,10 +15,13 @@ const statusColor: Record<string, { bg: string; text: string; dot: string }> = {
 };
 
 export default function Projects() {
-  const { data, setData } = useData();
+  const location = useLocation();
+  const { data, setData, reload } = useData();
   const projects = data.projects;
   const [selected, setSelected] = useState<number | null>(null);
   const [newTask, setNewTask] = useState("");
+  const [newTag, setNewTag] = useState("");
+  useEffect(() => { const id = location.pathname.split("/")[2]; const project = projects.find(item => item.serverId === id); if (project) setSelected(project.id); }, [location.pathname, projects]);
 
   const selectedProject = projects.find(p => p.id === selected);
 
@@ -95,17 +101,18 @@ export default function Projects() {
       {selectedProject && (
         <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-[var(--border)] shadow-xl z-40 overflow-y-auto" style={{ fontFamily: "var(--font-ui)" }}>
           <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold text-[var(--foreground)]">{selectedProject.name}</h2>
+            <input aria-label="Nome do projeto" value={selectedProject.name} onChange={event => setData(current => ({ ...current, projects: current.projects.map(project => project.id === selectedProject.id ? { ...project, name: event.target.value } : project) }))} className="text-[15px] font-semibold bg-transparent flex-1" />
             <button onClick={() => setSelected(null)} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">✕</button>
           </div>
 
           <div className="p-5">
-            <p className="text-[13px] text-[var(--muted-foreground)] mb-5">{selectedProject.description}</p>
+            <label className="field-label mb-4">Descrição<textarea value={selectedProject.description} onChange={event => setData(current => ({ ...current, projects: current.projects.map(project => project.id === selectedProject.id ? { ...project, description: event.target.value } : project) }))} className="field-input min-h-20" /></label>
+            <div className="grid grid-cols-2 gap-3 mb-5"><label className="field-label">Status<select value={selectedProject.status} onChange={event => setData(current => ({ ...current, projects: current.projects.map(project => project.id === selectedProject.id ? { ...project, status: event.target.value } : project) }))} className="field-input"><option>Planejado</option><option>Em andamento</option><option>Pausado</option><option>Concluído</option></select></label><label className="field-label">Prazo<input type="date" value={selectedProject.deadline} onChange={event => setData(current => ({ ...current, projects: current.projects.map(project => project.id === selectedProject.id ? { ...project, deadline: event.target.value } : project) }))} className="field-input" /></label></div>
 
             <div className="grid grid-cols-2 gap-3 mb-5">
               {[
                 { label: "Status", value: selectedProject.status },
-                { label: "Prazo", value: new Date(selectedProject.deadline).toLocaleDateString("pt-BR") },
+                { label: "Prazo", value: formatCivilDate(selectedProject.deadline) },
                 { label: "Progresso", value: `${selectedProject.progress}%` },
                 { label: "Tarefas", value: `${selectedProject.tasks.filter(t=>t.done).length}/${selectedProject.tasks.length}` },
               ].map(item => (
@@ -140,8 +147,9 @@ export default function Projects() {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">Tags</p>
               <div className="flex gap-1.5 flex-wrap">
                 {selectedProject.tags.map(tag => (
-                  <span key={tag} className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] font-medium">{tag}</span>
+                  <span key={tag} className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] font-medium">{tag} {selectedProject.serverId && selectedProject.tagIds?.[tag] && <button aria-label={`Remover tag ${tag}`} onClick={async () => { await api.delete(`/api/v1/projects/${selectedProject.serverId}/tags/${selectedProject.tagIds?.[tag]}`); await reload(); }}>×</button>}</span>
                 ))}
+                {selectedProject.serverId && <form onSubmit={async event => { event.preventDefault(); if (!newTag.trim()) return; const tag = await api.post<{ id: string }>("/api/v1/tags/ensure", { name: newTag }); await api.post(`/api/v1/projects/${selectedProject.serverId}/tags/${tag.id}`); setNewTag(""); await reload(); }} className="flex gap-1"><input aria-label="Nova tag" value={newTag} onChange={event => setNewTag(event.target.value)} className="w-20 text-xs border-b bg-transparent" /><button className="text-xs text-[var(--primary)]">+</button></form>}
               </div>
             </div>
             <button onClick={() => { setData(current => ({ ...current, projects: current.projects.filter(project => project.id !== selectedProject.id) })); setSelected(null); }} className="mt-6 text-[12px] text-red-500 hover:underline">Excluir projeto</button>

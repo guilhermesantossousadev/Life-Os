@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, MapPin, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2 } from "lucide-react";
 import { openQuickAdd } from "../components/QuickAddModal";
 import { useData } from "../context/DataContext";
+import { todayInSaoPaulo } from "../lib/dates";
+import { useLocation } from "react-router-dom";
 
 type View = "dia" | "semana" | "mes";
 
@@ -17,9 +19,14 @@ const catColor: Record<string, string> = {
 };
 
 export default function Agenda() {
-  const { data } = useData();
+  const location = useLocation();
+  const { data, setData } = useData();
   const [view, setView] = useState<View>("semana");
-  const [baseDate, setBaseDate] = useState(new Date("2026-08-22"));
+  const todayStr = todayInSaoPaulo();
+  const [baseDate, setBaseDate] = useState(() => new Date(`${todayStr}T12:00:00`));
+  const [selected, setSelected] = useState<number | null>(null);
+  const selectedEvent = data.events.find(event => event.id === selected);
+  useEffect(() => { const id = new URLSearchParams(location.search).get("event"); const event = data.events.find(item => item.serverId === id); if (event) { setSelected(event.id); setBaseDate(new Date(`${event.date}T12:00:00`)); } }, [data.events, location.search]);
 
   const getWeekDays = (date: Date) => {
     const day = date.getDay();
@@ -32,11 +39,9 @@ export default function Agenda() {
     });
   };
 
-  const toStr = (d: Date) => d.toISOString().slice(0, 10);
+  const toStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   const weekDays = getWeekDays(baseDate);
-  const todayStr = "2026-08-22";
-
   const eventsForDay = (dayStr: string) =>
     data.events.filter(e => e.date === dayStr);
 
@@ -110,6 +115,7 @@ export default function Agenda() {
                   {dayEvts.map(ev => (
                     <div
                       key={ev.id}
+                      onClick={() => setSelected(ev.id)}
                       className="rounded-lg px-2 py-1.5 text-[11.5px] cursor-pointer hover:opacity-80 transition-opacity"
                       style={{ background: (catColor[ev.category] || "#6B7280") + "18", borderLeft: `3px solid ${catColor[ev.category] || "#6B7280"}` }}
                     >
@@ -135,7 +141,7 @@ export default function Agenda() {
           ) : (
             <div className="space-y-3">
               {eventsForDay(toStr(baseDate)).map(ev => (
-                <div key={ev.id} className="flex gap-4 p-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors">
+                <div key={ev.id} onClick={() => setSelected(ev.id)} className="flex gap-4 p-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors cursor-pointer">
                   <div className="text-right w-12 flex-shrink-0">
                     <p className="text-[13px] font-semibold text-[var(--foreground)]">{ev.time}</p>
                     <p className="text-[11px] text-[var(--muted-foreground)]">{ev.endTime}</p>
@@ -185,7 +191,7 @@ export default function Agenda() {
                         <span className={`text-[12px] font-semibold inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? "bg-[var(--primary)] text-white" : "text-[var(--foreground)]"}`}>{day}</span>
                         <div className="mt-1 space-y-0.5">
                           {dayEvts.slice(0, 2).map(ev => (
-                            <div key={ev.id} className="text-[10px] rounded px-1 py-0.5 truncate" style={{ background: (catColor[ev.category] || "#6B7280") + "20", color: catColor[ev.category] || "#6B7280" }}>
+                            <div key={ev.id} onClick={() => setSelected(ev.id)} className="text-[10px] rounded px-1 py-0.5 truncate cursor-pointer" style={{ background: (catColor[ev.category] || "#6B7280") + "20", color: catColor[ev.category] || "#6B7280" }}>
                               {ev.time} {ev.title}
                             </div>
                           ))}
@@ -200,6 +206,7 @@ export default function Agenda() {
           </div>
         </div>
       )}
+      {selectedEvent && <aside role="dialog" aria-modal="true" aria-label="Editar evento" className="fixed inset-y-0 right-0 z-40 w-full max-w-sm bg-white border-l border-[var(--border)] shadow-xl p-6 overflow-y-auto"><div className="flex items-center justify-between mb-5"><h2 className="text-lg font-semibold">Editar evento</h2><button aria-label="Fechar" onClick={() => setSelected(null)}>✕</button></div><div className="space-y-4"><label className="field-label">Título<input value={selectedEvent.title} onChange={event => setData(current => ({ ...current, events: current.events.map(item => item.id === selectedEvent.id ? { ...item, title: event.target.value } : item) }))} className="field-input" /></label><label className="field-label">Data<input type="date" value={selectedEvent.date} onChange={event => setData(current => ({ ...current, events: current.events.map(item => item.id === selectedEvent.id ? { ...item, date: event.target.value } : item) }))} className="field-input" /></label><div className="grid grid-cols-2 gap-3"><label className="field-label">Início<input type="time" value={selectedEvent.time} onChange={event => setData(current => ({ ...current, events: current.events.map(item => item.id === selectedEvent.id ? { ...item, time: event.target.value } : item) }))} className="field-input" /></label><label className="field-label">Fim<input type="time" value={selectedEvent.endTime} onChange={event => setData(current => ({ ...current, events: current.events.map(item => item.id === selectedEvent.id ? { ...item, endTime: event.target.value } : item) }))} className="field-input" /></label></div><label className="field-label">Local<input value={selectedEvent.local} onChange={event => setData(current => ({ ...current, events: current.events.map(item => item.id === selectedEvent.id ? { ...item, local: event.target.value } : item) }))} className="field-input" /></label><label className="field-label">Categoria<select value={selectedEvent.category} onChange={event => setData(current => ({ ...current, events: current.events.map(item => item.id === selectedEvent.id ? { ...item, category: event.target.value } : item) }))} className="field-input">{data.categories.map(category => <option key={category}>{category}</option>)}</select></label></div><button onClick={() => { setData(current => ({ ...current, events: current.events.filter(item => item.id !== selectedEvent.id) })); setSelected(null); }} className="mt-6 text-sm text-red-600 flex items-center gap-2"><Trash2 size={14} />Excluir evento</button></aside>}
     </div>
   );
 }

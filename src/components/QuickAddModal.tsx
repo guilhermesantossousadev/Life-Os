@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Calendar, CheckSquare, FileText, FolderKanban, Target, TrendingDown, TrendingUp, X } from "lucide-react";
 import { nextId, today, useData } from "../context/DataContext";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 export type AddType = "task" | "event" | "expense" | "income" | "note" | "goal" | "project";
 export const openQuickAdd = (type: AddType) => window.dispatchEvent(new CustomEvent<AddType>("lifeos:add", { detail: type }));
@@ -24,6 +25,7 @@ const options = [
 const labels: Record<AddType, string> = Object.fromEntries(options.map(option => [option.id, option.label])) as Record<AddType, string>;
 
 export default function QuickAddModal({ onClose, onSuccess, initialType = null }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const { data, setData } = useData();
   const [type, setType] = useState<AddType | null>(initialType);
   const [title, setTitle] = useState("");
@@ -34,12 +36,9 @@ export default function QuickAddModal({ onClose, onSuccess, initialType = null }
   const [category, setCategory] = useState("Pessoal");
   const [amount, setAmount] = useState("");
   const [target, setTarget] = useState("");
+  const [account, setAccount] = useState(data.finances.accounts[0]?.name ?? "");
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useFocusTrap(dialogRef, onClose);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -51,7 +50,7 @@ export default function QuickAddModal({ onClose, onSuccess, initialType = null }
       if (type === "goal") return { ...current, goals: [...current.goals, { id: nextId(current.goals), title: title.trim(), category, target: Number(target) || 100, current: 0, unit: category === "Financeira" ? "BRL" : "%", deadline: date, description, actions: [] }] };
       if (type === "project") return { ...current, projects: [...current.projects, { id: nextId(current.projects), name: title.trim(), description, status: "Planejado", progress: 0, deadline: date, tasks: [], tags: [] }] };
       const value = Math.abs(Number(amount.replace(",", "."))) || 0;
-      const transaction = { id: nextId(current.finances.transactions), desc: title.trim(), category: type === "income" ? "Receita" : category, date, value: type === "income" ? value : -value, type: type === "income" ? "receita" : "despesa", account: current.finances.accounts[0]?.name || "Carteira" };
+      const transaction = { id: nextId(current.finances.transactions), desc: title.trim(), category: type === "income" ? "Receita" : category, date, value: type === "income" ? value : -value, type: type === "income" ? "receita" : "despesa", account };
       return { ...current, finances: { ...current.finances, transactions: [transaction, ...current.finances.transactions] } };
     });
     onSuccess(labels[type]);
@@ -61,10 +60,10 @@ export default function QuickAddModal({ onClose, onSuccess, initialType = null }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onMouseDown={event => event.target === event.currentTarget && onClose()}>
       <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px]" />
-      <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden" style={{ fontFamily: "var(--font-ui)" }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="quick-add-title" tabIndex={-1} className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden" style={{ fontFamily: "var(--font-ui)" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
           <div>
-            <h2 className="font-semibold text-[15px] text-[var(--foreground)]">{type ? `Nova ${labels[type].toLowerCase()}` : "Adicionar"}</h2>
+            <h2 id="quick-add-title" className="font-semibold text-[15px] text-[var(--foreground)]">{type ? `Nova ${labels[type].toLowerCase()}` : "Adicionar"}</h2>
             {type && <button type="button" onClick={() => setType(null)} className="text-[11px] text-[var(--primary)] mt-0.5">Trocar tipo</button>}
           </div>
           <button aria-label="Fechar" onClick={onClose} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"><X size={16} /></button>
@@ -88,6 +87,7 @@ export default function QuickAddModal({ onClose, onSuccess, initialType = null }
             {type !== "note" && <div className="grid grid-cols-2 gap-3"><label className="field-label">Data<input type="date" value={date} onChange={event => setDate(event.target.value)} className="field-input" /></label><label className="field-label">Categoria<select value={category} onChange={event => setCategory(event.target.value)} className="field-input">{data.categories.map(item => <option key={item}>{item}</option>)}</select></label></div>}
             {type === "event" && <div className="grid grid-cols-2 gap-3"><label className="field-label">Início<input type="time" value={time} onChange={event => setTime(event.target.value)} className="field-input" /></label><label className="field-label">Fim<input type="time" value={endTime} onChange={event => setEndTime(event.target.value)} className="field-input" /></label></div>}
             {(type === "expense" || type === "income") && <label className="field-label">Valor (R$)<input required inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} className="field-input" placeholder="0,00" /></label>}
+            {(type === "expense" || type === "income") && <label className="field-label">Conta<select required value={account} onChange={event => setAccount(event.target.value)} className="field-input"><option value="" disabled>Selecione</option>{data.finances.accounts.map(item => <option key={item.id}>{item.name}</option>)}</select>{data.finances.accounts.length === 0 && <span className="text-[11px] text-amber-700 mt-1">Cadastre uma conta em Finanças antes de lançar movimentos.</span>}</label>}
             {type === "goal" && <label className="field-label">Valor-alvo<input required inputMode="decimal" value={target} onChange={event => setTarget(event.target.value)} className="field-input" placeholder="100" /></label>}
             <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={onClose} className="px-3 py-2 text-[13px] text-[var(--muted-foreground)] rounded-lg hover:bg-[var(--secondary)]">Cancelar</button><button type="submit" className="px-4 py-2 text-[13px] font-medium bg-[var(--primary)] text-white rounded-lg hover:bg-blue-700">Salvar</button></div>
           </form>

@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Plus, ArrowRight, Archive, Trash2, CheckSquare, Calendar, FileText, Target, FolderKanban, Inbox as InboxIcon } from "lucide-react";
 import { nextId, today, useData } from "../context/DataContext";
+import { api } from "../services/api";
+import { resources } from "../services/resources";
+import { APP_TIME_ZONE } from "../lib/dates";
 
 export default function Inbox() {
-  const { data, setData } = useData();
-  const items = data.inbox;
+  const { data, setData, reload } = useData();
+  const [showArchived, setShowArchived] = useState(false);
+  const items = data.inbox.filter(item => Boolean(item.archived) === showArchived);
   const [text, setText] = useState("");
   const [active, setActive] = useState<number | null>(null);
 
@@ -14,18 +18,14 @@ export default function Inbox() {
     setText("");
   };
 
-  const remove = (id: number) => setData(current => ({ ...current, inbox: current.inbox.filter(item => item.id !== id) }));
-  const convert = (id: number, label: string) => {
+  const remove = async (id: number) => { const item = data.inbox.find(candidate => candidate.id === id); if (item?.serverId) { await resources.remove("inbox", item.serverId); await reload(); } };
+  const archive = async (id: number, restore = false) => { const item = data.inbox.find(candidate => candidate.id === id); if (item?.serverId) { await api.post(`/api/v1/inbox/${item.serverId}/${restore ? "restore" : "archive"}`); await reload(); } };
+  const convert = async (id: number, label: string) => {
     const source = items.find(item => item.id === id);
-    if (!source) return;
-    setData(current => {
-      const base = { ...current, inbox: current.inbox.filter(item => item.id !== id) };
-      if (label === "Tarefa") return { ...base, tasks: [...base.tasks, { id: nextId(base.tasks), title: source.text, done: false, priority: "normal", category: "Pessoal", date: today(), project: null }] };
-      if (label === "Evento") return { ...base, events: [...base.events, { id: nextId(base.events), title: source.text, date: today(), time: "09:00", endTime: "10:00", category: "Pessoal", local: "Não informado" }] };
-      if (label === "Nota") return { ...base, notes: [{ id: nextId(base.notes), title: source.text, content: "", category: "Pessoal", tags: [], favorite: false, updated: today() }, ...base.notes] };
-      if (label === "Meta") return { ...base, goals: [...base.goals, { id: nextId(base.goals), title: source.text, category: "Pessoal", target: 100, current: 0, unit: "%", deadline: today(), description: "", actions: [] }] };
-      return { ...base, projects: [...base.projects, { id: nextId(base.projects), name: source.text, description: "", status: "Planejado", progress: 0, deadline: today(), tasks: [], tags: [] }] };
-    });
+    if (!source?.serverId) return;
+    const type = ({ Tarefa: "task", Evento: "event", Nota: "note", Meta: "goal", Projeto: "project" } as Record<string, string>)[label];
+    await api.post(`/api/v1/inbox/${source.serverId}/convert`, { type, date: today(), startAt: new Date().toISOString(), targetValue: 100 });
+    await reload();
     setActive(null);
   };
 
@@ -43,6 +43,7 @@ export default function Inbox() {
         <h1 className="text-[22px] font-semibold text-[var(--foreground)]">Inbox</h1>
         <p className="text-[13px] text-[var(--muted-foreground)] mt-1">Capture qualquer pensamento rapidamente. Organize depois.</p>
       </div>
+      <button onClick={() => setShowArchived(value => !value)} className="mb-4 text-[12px] text-[var(--primary)]">{showArchived ? "Ver pendentes" : "Ver arquivados"}</button>
 
       {/* Quick capture */}
       <div className="bg-white rounded-xl border border-[var(--border)] p-4 mb-6">
@@ -83,7 +84,7 @@ export default function Inbox() {
               <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] flex-shrink-0" />
               <p className="flex-1 text-[13.5px] text-[var(--foreground)]">{item.text}</p>
               <span className="text-[11px] text-[var(--muted-foreground)]">
-                {new Date(item.created).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                {new Intl.DateTimeFormat("pt-BR", { timeZone: APP_TIME_ZONE, day: "2-digit", month: "short" }).format(new Date(item.created))}
               </span>
               <div className="flex items-center gap-1">
                 <button
@@ -94,14 +95,14 @@ export default function Inbox() {
                   <ArrowRight size={13} />
                 </button>
                 <button
-                  onClick={() => remove(item.id)}
+                  onClick={() => void archive(item.id, showArchived)}
                   className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-red-500 transition-colors"
                   title="Arquivar"
                 >
                   <Archive size={13} />
                 </button>
                 <button
-                  onClick={() => remove(item.id)}
+                  onClick={() => void remove(item.id)}
                   className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:bg-red-50 hover:text-red-500 transition-colors"
                   title="Excluir"
                 >
@@ -120,7 +121,7 @@ export default function Inbox() {
                     return (
                       <button
                         key={opt.label}
-                        onClick={() => convert(item.id, opt.label)}
+                        onClick={() => void convert(item.id, opt.label)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[var(--border)] text-[12px] text-[var(--foreground)] hover:border-[var(--primary)] transition-colors"
                       >
                         <Icon size={12} className="text-[var(--primary)]" />

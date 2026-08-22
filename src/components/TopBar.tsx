@@ -46,7 +46,7 @@ export default function TopBar({ onSearch, onQuickAdd, onNotifications, onProfil
 
       {/* Avatar */}
       <button aria-label="Abrir perfil" onClick={onProfile} className="w-8 h-8 rounded-full bg-[var(--primary)] text-white text-xs font-semibold flex items-center justify-center flex-shrink-0">
-        {data.user.avatar.startsWith("data:") ? <img src={data.user.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" /> : data.user.avatar}
+        {/^(data:|https?:)/.test(data.user.avatar) ? <img src={data.user.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" /> : data.user.avatar}
       </button>
     </header>
   );

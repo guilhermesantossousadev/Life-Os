@@ -1,10 +1,9 @@
 import { CheckSquare, Calendar, Wallet, Target, BookOpen, AlertCircle, Clock, ArrowRight } from "lucide-react";
 import { useData } from "../context/DataContext";
+import { APP_TIME_ZONE, todayInSaoPaulo } from "../lib/dates";
 
-const hour = new Date().getHours();
+const hour = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: APP_TIME_ZONE, hour: "2-digit", hour12: false }).format(new Date()));
 const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
-
-const todayStr = "2026-08-22";
 
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -12,13 +11,15 @@ function fmt(v: number) {
 
 export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { data, setData } = useData();
+  const todayStr = todayInSaoPaulo();
   const tasks = data.tasks.filter(t => t.date === todayStr);
 
   const todayEvents = data.events.filter(e => e.date === todayStr);
   const topGoals = data.goals.slice(0, 3);
 
-  const monthIncome = data.finances.transactions.filter(t => t.type === "receita").reduce((s, t) => s + t.value, 0);
-  const monthExpense = Math.abs(data.finances.transactions.filter(t => t.type === "despesa").reduce((s, t) => s + t.value, 0));
+  const currentMonth = todayStr.slice(0, 7);
+  const monthIncome = data.finances.transactions.filter(t => t.type === "receita" && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.value, 0);
+  const monthExpense = Math.abs(data.finances.transactions.filter(t => t.type === "despesa" && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.value, 0));
   const totalBalance = data.finances.accounts.reduce((s, a) => s + a.balance, 0);
 
   const nextAssignment = data.studies.assignments[0];
@@ -32,8 +33,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
     <div className="p-6 max-w-5xl mx-auto" style={{ fontFamily: "var(--font-ui)" }}>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-[28px] font-semibold text-[var(--foreground)]">{greeting}, Guilherme</h1>
-        <p className="text-[var(--muted-foreground)] text-[14px] mt-0.5">Sábado, 22 de agosto de 2026</p>
+        <h1 className="text-[28px] font-semibold text-[var(--foreground)]">{greeting}, {data.user.name || "você"}</h1>
+        <p className="text-[var(--muted-foreground)] text-[14px] mt-0.5">{new Intl.DateTimeFormat("pt-BR", { timeZone: APP_TIME_ZONE, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())}</p>
       </div>
 
       {/* Alert strip */}
@@ -50,7 +51,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
           { label: "Tarefas hoje", value: `${pending} pendentes`, icon: CheckSquare, color: "#2563EB", sub: `${tasks.filter(t=>t.done).length} concluídas` },
           { label: "Compromissos", value: `${todayEvents.length} hoje`, icon: Calendar, color: "#059669", sub: todayEvents[0]?.time + " " + (todayEvents[0]?.title ?? "—") },
           { label: "Saldo total", value: fmt(totalBalance), icon: Wallet, color: "#7C3AED", sub: `Gasto: ${fmt(monthExpense)} este mês` },
-          { label: "Faculdade", value: nextAssignment?.title.slice(0,22)+"…", icon: BookOpen, color: "#D97706", sub: "Entrega: " + nextAssignment?.due },
+          { label: "Faculdade", value: nextAssignment ? `${nextAssignment.title.slice(0,22)}${nextAssignment.title.length > 22 ? "…" : ""}` : "Sem entregas", icon: BookOpen, color: "#D97706", sub: nextAssignment ? "Entrega: " + nextAssignment.due : "Tudo em dia" },
         ].map((card) => {
           const Icon = card.icon;
           return (
