@@ -1,0 +1,151 @@
+import { useState } from "react";
+import { Plus, Flag, Trash2 } from "lucide-react";
+import { nextId, today, useData } from "../context/DataContext";
+
+type View = "hoje" | "proximas" | "todas" | "concluidas";
+
+const priorityColor: Record<string, string> = {
+  alta: "#EF4444",
+  normal: "#F59E0B",
+  baixa: "#6B7280",
+};
+
+export default function Tasks() {
+  const [view, setView] = useState<View>("hoje");
+  const { data, setData } = useData();
+  const tasks = data.tasks;
+  const [quickAdd, setQuickAdd] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+
+  const todayStr = today();
+
+  const filtered = (() => {
+    switch (view) {
+      case "hoje": return tasks.filter(t => t.date === todayStr && !t.done);
+      case "proximas": return tasks.filter(t => t.date > todayStr && !t.done);
+      case "todas": return tasks.filter(t => !t.done);
+      case "concluidas": return tasks.filter(t => t.done);
+    }
+  })();
+
+  const toggle = (id: number) => setData(current => ({ ...current, tasks: current.tasks.map(task => task.id === id ? { ...task, done: !task.done } : task) }));
+  const remove = (id: number) => setData(current => ({ ...current, tasks: current.tasks.filter(task => task.id !== id) }));
+
+  const addTask = () => {
+    if (!quickAdd.trim()) return;
+    setData(current => ({ ...current, tasks: [...current.tasks, {
+      id: nextId(current.tasks), title: quickAdd.trim(), done: false,
+      priority: "normal", category: "Pessoal", date: todayStr, project: null,
+    }] }));
+    setQuickAdd("");
+    setShowAdd(false);
+  };
+
+  const views: { id: View; label: string; count: number }[] = [
+    { id: "hoje", label: "Hoje", count: tasks.filter(t => t.date === todayStr && !t.done).length },
+    { id: "proximas", label: "Próximas", count: tasks.filter(t => t.date > todayStr && !t.done).length },
+    { id: "todas", label: "Todas", count: tasks.filter(t => !t.done).length },
+    { id: "concluidas", label: "Concluídas", count: tasks.filter(t => t.done).length },
+  ];
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto" style={{ fontFamily: "var(--font-ui)" }}>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-[22px] font-semibold text-[var(--foreground)]">Tarefas</h1>
+        <button
+          onClick={() => setShowAdd(s => !s)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg bg-[var(--primary)] text-white hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={14} /> Nova tarefa
+        </button>
+      </div>
+
+      {/* Quick add */}
+      {showAdd && (
+        <div className="bg-white rounded-xl border border-[var(--primary)]/30 p-4 mb-4 shadow-sm">
+          <input
+            autoFocus
+            value={quickAdd}
+            onChange={e => setQuickAdd(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") addTask(); if (e.key === "Escape") setShowAdd(false); }}
+            placeholder="Título da tarefa..."
+            className="w-full text-[14px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] bg-transparent mb-3"
+          />
+          <div className="flex items-center gap-2">
+            <button onClick={addTask} className="px-3 py-1.5 bg-[var(--primary)] text-white text-[12px] rounded-lg hover:bg-blue-700">Adicionar</button>
+            <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-[12px] text-[var(--muted-foreground)] hover:bg-[var(--secondary)] rounded-lg">Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* View tabs */}
+      <div className="flex gap-1 mb-6 bg-[var(--secondary)] p-1 rounded-xl w-fit">
+        {views.map(v => (
+          <button
+            key={v.id}
+            onClick={() => setView(v.id)}
+            className={`px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
+              view === v.id ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            {v.label}
+            {v.count > 0 && (
+              <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${view === v.id ? "bg-[var(--primary)] text-white" : "bg-[var(--border)] text-[var(--muted-foreground)]"}`}>
+                {v.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Task list */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--secondary)] flex items-center justify-center mx-auto mb-3">
+            <Plus size={20} className="text-[var(--muted-foreground)]" />
+          </div>
+          <p className="text-[14px] font-medium text-[var(--foreground)]">Nenhuma tarefa aqui</p>
+          <p className="text-[13px] text-[var(--muted-foreground)] mt-1">Aproveite ou adicione uma nova.</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {filtered.map(task => (
+            <div
+              key={task.id}
+              className="bg-white rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all group"
+            >
+              <label className="flex items-start gap-3 px-4 py-3.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={task.done}
+                  onChange={() => toggle(task.id)}
+                  className="mt-0.5 w-3.5 h-3.5 rounded accent-[var(--primary)]"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13.5px] ${task.done ? "line-through text-[var(--muted-foreground)]" : "text-[var(--foreground)]"}`}>
+                    {task.title}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {task.date && <span className="text-[11px] text-[var(--muted-foreground)]">{task.date}</span>}
+                    <span className="text-[11px] text-[var(--muted-foreground)]">·</span>
+                    <span className="text-[11px] text-[var(--muted-foreground)]">{task.category}</span>
+                    {task.project && (
+                      <>
+                        <span className="text-[11px] text-[var(--muted-foreground)]">·</span>
+                        <span className="text-[11px] text-[var(--primary)]">{task.project}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Flag size={12} style={{ color: priorityColor[task.priority] }} />
+                  <button aria-label="Excluir tarefa" onClick={event => { event.preventDefault(); remove(task.id); }} className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-foreground)] hover:text-red-500"><Trash2 size={12} /></button>
+                </div>
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,10 @@
+{
+  "description": "Centralize and organize daily tasks, finances, studies, and personal goals in a simple, user-friendly interface for effective life management.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

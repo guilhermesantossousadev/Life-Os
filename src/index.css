@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap');
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --font-sans: var(--font-ui);
+  --font-body: var(--font-body-family);
+  --font-mono: var(--font-mono-family);
+}
+
+:root {
+  --background: #FAFAFA;
+  --foreground: #18181B;
+  --card: #FFFFFF;
+  --card-foreground: #18181B;
+  --primary: #2563EB;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F4F4F5;
+  --secondary-foreground: #3F3F46;
+  --muted: #F4F4F5;
+  --muted-foreground: #71717A;
+  --accent: #EFF6FF;
+  --accent-foreground: #1D4ED8;
+  --border: #E4E4E7;
+  --ring: #2563EB;
+  --radius: 8px;
+  --font-ui: 'Outfit', system-ui, sans-serif;
+  --font-body-family: 'Source Sans 3', system-ui, sans-serif;
+  --font-mono-family: 'DM Mono', monospace;
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 60px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body-family);
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+.field-label {
+  display: block;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.field-input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13px;
+}
+
+.field-input:focus { border-color: var(--primary); }
+
+.dark {
+  --background: #09090B;
+  --foreground: #FAFAFA;
+  --card: #18181B;
+  --card-foreground: #FAFAFA;
+  --secondary: #27272A;
+  --secondary-foreground: #E4E4E7;
+  --muted: #27272A;
+  --muted-foreground: #A1A1AA;
+  --accent: #172554;
+  --accent-foreground: #BFDBFE;
+  --border: #3F3F46;
+}
+
+.dark .bg-white { background-color: var(--card); }
+.dark input, .dark textarea, .dark select { color-scheme: dark; }
+
+@media (max-width: 760px) {
+  .app-sidebar { width: 60px !important; }
+  .app-sidebar nav p,
+  .app-sidebar nav button span,
+  .app-sidebar > div:first-child > span,
+  .app-sidebar > div:last-child button span { display: none; }
+  .app-sidebar nav button { justify-content: center; }
+  .app-topbar { padding-inline: 10px; gap: 6px; }
+  .app-topbar > span:first-child { display: none; }
+  .app-topbar > button:nth-of-type(1) { min-width: 36px !important; width: 36px; padding: 0; justify-content: center; }
+  .app-topbar > button:nth-of-type(1) span { display: none; }
+  .app-topbar > button:nth-of-type(3) span { display: none; }
+  main > .p-6 { padding: 16px; }
+  .fixed.inset-y-0.right-0.w-96 { width: calc(100vw - 60px); }
+}
+
+/* Hide scrollbar by default, show on hover */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4D4D8;
+  border-radius: 99px;
+  opacity: 0;
+}
+:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
+
+/* Remove outline and use focus-visible */
+*:focus {
+  outline: none;
+}
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
