@@ -25,9 +25,8 @@ RUN dotnet publish LifeOS.Api/LifeOS.Api.csproj -c Release --no-restore -o /app/
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
+EXPOSE 10000
 COPY --from=backend-build /app/publish .
 COPY --from=frontend-build /src/dist ./wwwroot
 USER $APP_UID
-ENTRYPOINT ["dotnet", "LifeOS.Api.dll"]
+ENTRYPOINT ["sh", "-c", "exec dotnet LifeOS.Api.dll --urls http://0.0.0.0:${PORT:-10000}"]
