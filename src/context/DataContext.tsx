@@ -179,7 +179,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     if (!user) { setInternalData(emptyData); setLoading(false); return; }
-    setLoading(true); setError(null);
+    if (!dataRef.current.user.email) setLoading(true);
+    setError(null);
     try {
       await api.get("/api/v1/profile");
       await api.get("/api/v1/preferences");

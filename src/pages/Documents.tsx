@@ -28,7 +28,7 @@ export default function Documents() {
     if (!files) return; setBusy(true); setStatus(null);
     try {
       for (const file of Array.from(files)) await documentsApi.upload(file, file.name.replace(/\.[^.]+$/, ""), activeCategory === "Todos" ? "Outros" : activeCategory);
-      setStatus("Upload concluído."); await reload();
+      await reload(); setStatus("Upload concluído.");
     } catch (reason) { setStatus(reason instanceof Error ? reason.message : "Falha no upload."); }
     finally { setBusy(false); if (inputRef.current) inputRef.current.value = ""; }
   };
@@ -41,7 +41,7 @@ export default function Documents() {
 
   const remove = async (serverId?: string) => {
     if (!serverId) return; setBusy(true);
-    try { await documentsApi.remove(serverId); setStatus("Documento excluído."); await reload(); }
+    try { await documentsApi.remove(serverId); await reload(); setStatus("Documento excluído."); }
     catch (reason) { setStatus(reason instanceof Error ? reason.message : "Falha ao excluir."); }
     finally { setBusy(false); }
   };
