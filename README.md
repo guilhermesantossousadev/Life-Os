@@ -88,7 +88,9 @@ dotnet ef migrations add NomeDaMigration \
 
 4. No SQL Editor do Supabase, execute [0002_rls_storage.sql](supabase/migrations/0002_rls_storage.sql). Ele habilita RLS, cria as policies por `auth.uid()` e registra o bucket privado `documents`.
 
-As migrations EF são versionadas no repositório e não são executadas automaticamente na inicialização da API.
+As migrations EF são versionadas no repositório. Em produção, defina
+`Database__MigrateOnStartup=true` para aplicá-las automaticamente na inicialização da API.
+Isso também configura o bucket privado e as policies do Supabase.
 
 ## Desenvolvimento local
 
@@ -167,12 +169,14 @@ O servidor é a fonte de verdade. `localStorage` é consultado somente para ofer
 
 ## Deploy
 
-1. Provisione PostgreSQL/Auth/Storage no Supabase.
-2. Aplique migrations EF e o SQL de RLS.
-3. Faça deploy de `backend/Dockerfile` com secrets no cofre do provedor.
-4. Configure `Cors__AllowedOrigins__0` com a origem HTTPS real do frontend.
-5. Faça o build do frontend com as três variáveis `VITE_*` públicas.
-6. Publique o frontend estático usando o `Dockerfile` raiz ou qualquer CDN/host SPA.
-7. Valide `/health`, autenticação, upload e os E2E em uma conta exclusiva de teste.
+O caminho recomendado é o Blueprint [render.yaml](render.yaml), que publica API e frontend
+no mesmo serviço usando [Dockerfile.production](Dockerfile.production). Na criação do Blueprint,
+informe os cinco valores solicitados: a connection string direta/pooler do Supabase, URL do
+projeto, service role key, URL pública (`VITE_SUPABASE_URL`) e anon/publishable key
+(`VITE_SUPABASE_ANON_KEY`). O serviço aplica as migrations automaticamente.
+
+Depois do primeiro deploy, cadastre a URL HTTPS do serviço em **Supabase Auth > URL
+Configuration** como Site URL e Redirect URL. Valide `/health`, autenticação, upload e os E2E
+em uma conta exclusiva de teste.
 
 O repositório está preparado para deploy, mas não contém credenciais nem comprova que uma instância cloud tenha sido publicada.

@@ -14,7 +14,8 @@ export class ApiError extends Error {
   }
 }
 
-const apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:5080").replace(/\/$/, "");
+const defaultApiUrl = import.meta.env.DEV ? "http://localhost:5080" : window.location.origin;
+const apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) || defaultApiUrl).replace(/\/$/, "");
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();

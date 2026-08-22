@@ -8,6 +8,7 @@ using LifeOS.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
@@ -73,6 +74,8 @@ app.Use(async (context, next) =>
 });
 if (!app.Environment.IsDevelopment()) app.UseHsts();
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseCors("frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -86,6 +89,15 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.MapHealthChecks("/health", new HealthCheckOptions { ResponseWriter = HealthResponseWriter.Write }).AllowAnonymous();
+app.MapFallbackToFile("index.html");
+
+if (builder.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var database = scope.ServiceProvider.GetRequiredService<LifeOsDbContext>();
+    await database.Database.MigrateAsync();
+}
+
 app.Run();
 
 public partial class Program;

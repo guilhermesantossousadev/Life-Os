@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: life-os-guilhermesantos
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile.production
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+        value: "true"
+      - key: Database__MigrateOnStartup
+        value: "true"
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Supabase__Url
+        sync: false
+      - key: Supabase__ServiceRoleKey
+        sync: false
+      - key: Supabase__JwtAudience
+        value: authenticated
+      - key: Supabase__StorageBucket
+        value: documents
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false

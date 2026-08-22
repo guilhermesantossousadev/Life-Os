@@ -1,0 +1,33 @@
+FROM node:22-alpine AS frontend-build
+WORKDIR /src
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY index.html tsconfig.json vite.config.ts ./
+COPY src ./src
+ARG VITE_API_URL
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_API_URL=$VITE_API_URL \
+    VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+RUN npm run build
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
+WORKDIR /src
+COPY backend/LifeOS.slnx ./
+COPY backend/LifeOS.Domain/LifeOS.Domain.csproj LifeOS.Domain/
+COPY backend/LifeOS.Application/LifeOS.Application.csproj LifeOS.Application/
+COPY backend/LifeOS.Infrastructure/LifeOS.Infrastructure.csproj LifeOS.Infrastructure/
+COPY backend/LifeOS.Api/LifeOS.Api.csproj LifeOS.Api/
+RUN dotnet restore LifeOS.Api/LifeOS.Api.csproj
+COPY backend/ .
+RUN dotnet publish LifeOS.Api/LifeOS.Api.csproj -c Release --no-restore -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+COPY --from=backend-build /app/publish .
+COPY --from=frontend-build /src/dist ./wwwroot
+USER $APP_UID
+ENTRYPOINT ["dotnet", "LifeOS.Api.dll"]
