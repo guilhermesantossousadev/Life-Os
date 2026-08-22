@@ -56,7 +56,7 @@ test("criar, editar e concluir tarefa", async ({ page }) => {
   });
 
   checkbox = page.getByRole("checkbox", { name: `Concluir tarefa ${editedTitle}` });
-  await expectSuccessfulWrite(page, /\/api\/v1\/tasks\//, () => checkbox.check());
+  await expectSuccessfulWrite(page, /\/api\/v1\/tasks\//, () => checkbox.click());
   await expect(page.getByText(editedTitle)).toBeHidden();
 });
 
