@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
-using LifeOS.Api;
-using LifeOS.Api.Auth;
-using LifeOS.Api.Middleware;
-using LifeOS.Api.Storage;
+using LifeOS.Api.Authentication;
+using LifeOS.Api.Infrastructure;
+using LifeOS.Api.Presentation;
+using LifeOS.Application.Abstractions;
 using LifeOS.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;

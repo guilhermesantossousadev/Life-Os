@@ -1,6 +1,6 @@
 # Plano de implementação e publicação
 
-Atualizado em 22 de agosto de 2026.
+Atualizado em 23 de agosto de 2026.
 
 ## Objetivo
 
@@ -19,8 +19,9 @@ Render e um projeto Supabase para PostgreSQL, Auth e Storage.
 - [x] Blueprint gratuito definido em `render.yaml`.
 - [x] Migrations automatizadas na inicialização de produção.
 - [x] RLS, policies e bucket privado `documents` incluídos nas migrations.
-- [x] Configuração publicada na branch `main`, commit `000c0f7`.
-- [x] CI do commit aprovada no GitHub.
+- [x] Código organizado em camadas de Clean Architecture no frontend e backend.
+- [x] Documentação técnica separada por arquitetura, desenvolvimento, API, segurança e deploy.
+- [ ] Alterações atuais publicadas na branch principal e CI aprovada.
 - [ ] Projeto Supabase criado ou selecionado.
 - [ ] Serviço Render provisionado.
 - [ ] Secrets de produção configurados.

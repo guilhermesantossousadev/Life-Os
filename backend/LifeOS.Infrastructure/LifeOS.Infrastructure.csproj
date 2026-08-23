@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LifeOS.Domain\LifeOS.Domain.csproj" />
-    <ProjectReference Include="..\LifeOS.Application\LifeOS.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

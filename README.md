@@ -1,74 +1,52 @@
 # Life OS
 
-Aplicação pessoal full-stack para tarefas, inbox, agenda, metas, projetos, notas, finanças, estudos, carreira, patrimônio e documentos. O frontend preserva a interface React/Vite existente; `Templates/Figma/` continua sendo apenas a referência visual e não foi alterada.
+Aplicação pessoal full-stack para organizar tarefas, agenda, metas, projetos, notas, finanças, estudos, carreira, patrimônio e documentos privados.
 
-## Arquitetura
+O repositório segue uma Clean Architecture pragmática: regras e contratos ficam no centro; React, ASP.NET Core, EF Core, Supabase e PostgreSQL são detalhes externos. A composição das implementações acontece apenas nos pontos de entrada.
+
+## Visão geral
 
 ```text
-React 19 + Vite 8 + TypeScript + Tailwind
-                    │ Supabase Auth JWT
-                    ▼
-             ASP.NET Core 10 API
-                    │ EF Core / Npgsql
-                    ▼
-             PostgreSQL (Supabase)
-                    │
-                    └── Supabase Storage privado
+React 19 / TypeScript / Vite
+          │ JWT do Supabase Auth
+          ▼
+ASP.NET Core 10 Web API
+          │ EF Core / Npgsql
+          ▼
+PostgreSQL + Supabase Storage privado
 ```
 
-- `src/`: frontend, rotas protegidas, camada central de API e módulos da aplicação.
-- `backend/LifeOS.Api`: endpoints, autenticação, autorização, ProblemDetails, Swagger e health checks.
-- `backend/LifeOS.Application`: validações, datas e regras financeiras.
-- `backend/LifeOS.Domain`: entidades e enums.
-- `backend/LifeOS.Infrastructure`: EF Core, PostgreSQL e migrations.
-- `backend/LifeOS.Tests`: testes xUnit.
-- `supabase/migrations`: RLS e policies do bucket privado.
-- `e2e/`: fluxos críticos Playwright para desktop e mobile.
+- Frontend em `src/`, organizado em `domain`, `application`, `infrastructure`, `presentation` e `app`.
+- Backend em `backend/`, com projetos separados para `Domain`, `Application`, `Infrastructure` e `Api`.
+- Autenticação pelo Supabase Auth; a API é a única porta de acesso aos dados pessoais.
+- Arquivos privados no Supabase Storage, entregues por URLs assinadas temporárias.
+- Datas civis em `YYYY-MM-DD`, timestamps em UTC e apresentação em `pt-BR`/`America/Sao_Paulo`.
 
-Integrações externas e o Assistente/IA permanecem deliberadamente desativados, exibindo “Em breve” ou “Em desenvolvimento”. Não existe chamada a LLM.
+## Início rápido
 
-## Requisitos
-
-- Node.js 22 (consulte `.nvmrc`) e npm.
-- .NET SDK 10 LTS.
-- PostgreSQL 17 ou projeto Supabase.
-- Projeto Supabase com Auth habilitado.
-
-O gerenciador oficial do frontend é npm. O `package-lock.json` é o único lockfile mantido.
-
-## Configuração
-
-Frontend:
+Requisitos: Node.js 22, npm, .NET SDK 10 e um projeto Supabase. PostgreSQL 17 é necessário apenas para o fluxo local via Docker.
 
 ```bash
 cp .env.example .env.local
+npm ci
+npm run dev
 ```
 
-```env
-VITE_API_URL=http://localhost:5080
-VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
-VITE_SUPABASE_ANON_KEY=SUA_CHAVE_ANON_PUBLICA
+Em outro terminal:
+
+```bash
+dotnet run --project backend/LifeOS.Api
 ```
 
-Backend: defina as variáveis abaixo no shell, no provedor cloud ou em User Secrets. O ASP.NET Core lê nomes com `__` como seções hierárquicas.
+Endereços padrão:
 
-```env
-ConnectionStrings__DefaultConnection=
-Supabase__Url=
-Supabase__JwtIssuer=
-Supabase__JwtAudience=authenticated
-Supabase__ServiceRoleKey=
-Supabase__StorageBucket=documents
-Cors__AllowedOrigins__0=http://localhost:5173
-```
+- Frontend: `http://localhost:5173`
+- API e Swagger: `http://localhost:5080` e `http://localhost:5080/swagger`
+- Health check: `http://localhost:5080/health`
 
-Use [backend/.env.example](backend/.env.example) como referência. A API não carrega arquivos `.env` por conta própria; exporte as variáveis ou configure-as no host. A chave `service_role` é exclusivamente do backend e nunca deve usar o prefixo `VITE_`.
+O frontend precisa de `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. A API precisa das configurações listadas em [backend/.env.example](backend/.env.example); ela não carrega `.env` automaticamente.
 
-## Supabase e banco
-
-1. Crie um projeto Supabase e copie URL, anon key e service role key.
-2. Configure a connection string PostgreSQL com SSL.
-3. Aplique as migrations EF Core:
+## Banco e Supabase
 
 ```bash
 dotnet tool install --global dotnet-ef
@@ -77,109 +55,49 @@ dotnet ef database update \
   --startup-project backend/LifeOS.Api
 ```
 
-Para criar uma migration futura:
+Depois, execute [0002_rls_storage.sql](supabase/migrations/0002_rls_storage.sql) no SQL Editor do Supabase para garantir RLS, policies por usuário e o bucket privado `documents`. Em produção, `Database__MigrateOnStartup=true` aplica as migrations na inicialização.
+
+## Validação
 
 ```bash
-dotnet ef migrations add NomeDaMigration \
-  --project backend/LifeOS.Infrastructure \
-  --startup-project backend/LifeOS.Api \
-  --output-dir Migrations
+npm run typecheck
+npm test
+npm run build
+dotnet test backend/LifeOS.Tests/LifeOS.Tests.csproj --configuration Release
 ```
 
-4. No SQL Editor do Supabase, execute [0002_rls_storage.sql](supabase/migrations/0002_rls_storage.sql). Ele habilita RLS, cria as policies por `auth.uid()` e registra o bucket privado `documents`.
-
-As migrations EF são versionadas no repositório. Em produção, defina
-`Database__MigrateOnStartup=true` para aplicá-las automaticamente na inicialização da API.
-Isso também configura o bucket privado e as policies do Supabase.
-
-## Desenvolvimento local
-
-Terminal 1 — API:
+Os E2E exigem uma conta exclusiva de teste:
 
 ```bash
-dotnet run --project backend/LifeOS.Api
+E2E_BASE_URL=http://localhost:5173 \
+E2E_EMAIL=usuario-de-teste@example.com \
+E2E_PASSWORD=senha-da-conta-de-teste \
+npm run test:e2e
 ```
 
-Terminal 2 — frontend:
+Sem essas variáveis, os cenários são ignorados para não alterar contas reais.
 
-```bash
-npm ci
-npm run dev
-```
-
-- Frontend: `http://localhost:5173`
-- API: `http://localhost:5080` conforme `launchSettings.json`
-- Swagger em desenvolvimento: `http://localhost:5080/swagger`
-- Health check: `http://localhost:5080/health`
-
-O `/health` devolve somente o estado agregado da API/banco e responde `503` se o banco estiver indisponível.
-
-## Docker Compose
-
-Para um PostgreSQL local e os dois serviços:
+## Docker
 
 ```bash
 cp .env.docker.example .env.docker
 docker compose --env-file .env.docker up --build
 ```
 
-Depois aplique as migrations apontando `ConnectionStrings__DefaultConnection` para o PostgreSQL do Compose. O Supabase continua necessário para autenticação e Storage; o container PostgreSQL local é destinado ao desenvolvimento.
+O Compose inicia PostgreSQL, API e frontend. Supabase ainda é necessário para Auth e Storage.
 
-Os Dockerfiles são independentes do provedor e podem ser usados em Azure, Render, Railway, Fly.io ou outro host compatível com containers.
+## Documentação
 
-## Testes e build
+- [Arquitetura](docs/ARCHITECTURE.md): camadas, dependências e decisões.
+- [Desenvolvimento](docs/DEVELOPMENT.md): configuração, comandos e convenções.
+- [API](docs/API.md): autenticação, contratos, recursos e erros.
+- [Segurança](docs/SECURITY.md): ownership, secrets e arquivos.
+- [Deploy](docs/DEPLOYMENT.md): containers, Render, Supabase e rollback.
+- [Contexto atual](CONTEXT.md): escopo funcional e estado verificável.
+- [Checklist de publicação](IMPLEMENTATION_PLAN.md): tarefas operacionais restantes.
 
-Frontend:
+`Templates/Figma/` é somente uma referência visual e não participa do build. Não altere essa pasta sem autorização explícita.
 
-```bash
-npm run typecheck
-npm test
-npm run build
-```
+## Fora de escopo
 
-Backend:
-
-```bash
-dotnet test backend/LifeOS.Tests/LifeOS.Tests.csproj --configuration Release
-```
-
-E2E contra um ambiente de teste configurado:
-
-```bash
-E2E_BASE_URL=http://localhost:5173 \
-E2E_EMAIL=usuario-de-teste@example.com \
-E2E_PASSWORD=senha-do-usuario-de-teste \
-npm run test:e2e
-```
-
-Os E2E são ignorados quando as credenciais não são fornecidas, evitando mutações acidentais em contas reais. A CI executa typecheck, testes, builds, listagem dos cenários Playwright e `git diff --check`.
-
-## Segurança e dados
-
-- O backend valida assinatura, emissor, audiência e validade dos JWTs do Supabase.
-- Todo CRUD filtra por `user_id` e valida ownership das relações.
-- Valores monetários usam `decimal`/`numeric`, nunca `double`.
-- Datas civis permanecem `DateOnly`; timestamps usam UTC; a apresentação usa `America/Sao_Paulo` e `pt-BR`.
-- Documentos ficam em Storage privado e são acessados por URLs assinadas temporárias.
-- Uploads validam tamanho (20 MB), extensão, MIME e proprietário.
-- Erros seguem ProblemDetails e incluem um trace ID, sem expor exceções internas.
-- Secrets, tokens e connection strings reais não são versionados.
-
-O servidor é a fonte de verdade. `localStorage` é consultado somente para oferecer a importação opcional do legado `life-os-data-v1`; os dados não são removidos até o usuário validar a importação. Backups JSON são versionados e incluem somente dados estruturados e metadados de documentos, nunca binários.
-
-## Deploy
-
-O caminho recomendado é o Blueprint [render.yaml](render.yaml), que publica API e frontend
-no mesmo serviço usando [Dockerfile.production](Dockerfile.production). Na criação do Blueprint,
-informe os cinco valores solicitados: a connection string direta/pooler do Supabase, URL do
-projeto, service role key, URL pública (`VITE_SUPABASE_URL`) e anon/publishable key
-(`VITE_SUPABASE_ANON_KEY`). O serviço aplica as migrations automaticamente.
-
-Depois do primeiro deploy, cadastre a URL HTTPS do serviço em **Supabase Auth > URL
-Configuration** como Site URL e Redirect URL. Valide `/health`, autenticação, upload e os E2E
-em uma conta exclusiva de teste.
-
-O repositório está preparado para deploy, mas não contém credenciais nem comprova que uma instância cloud tenha sido publicada.
-
-O checklist completo para retomar e concluir a publicação está em
-[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+Integrações com Google, Notion, Open Finance e o Assistente/IA permanecem deliberadamente desativados e aparecem como “Em breve” ou “Em desenvolvimento”. O projeto não chama LLMs.

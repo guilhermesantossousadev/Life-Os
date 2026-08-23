@@ -1,8 +1,7 @@
 using System.Security.Claims;
-using LifeOS.Api.Auth;
+using LifeOS.Application.Abstractions;
 using LifeOS.Domain;
 using LifeOS.Infrastructure;
-using LifeOS.Api.Storage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

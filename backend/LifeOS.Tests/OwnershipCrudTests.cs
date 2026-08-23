@@ -1,6 +1,6 @@
-using LifeOS.Api.Auth;
 using LifeOS.Api.Controllers;
 using LifeOS.Application;
+using LifeOS.Application.Abstractions;
 using LifeOS.Domain;
 using LifeOS.Infrastructure;
 using Microsoft.AspNetCore.Mvc;

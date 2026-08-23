@@ -1,4 +1,4 @@
-using LifeOS.Api.Auth;
+using LifeOS.Application.Abstractions;
 using LifeOS.Application;
 using LifeOS.Infrastructure;
 using Microsoft.AspNetCore.Authorization;

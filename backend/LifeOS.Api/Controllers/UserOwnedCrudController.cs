@@ -1,5 +1,5 @@
 using System.Reflection;
-using LifeOS.Api.Auth;
+using LifeOS.Application.Abstractions;
 using LifeOS.Application;
 using LifeOS.Domain;
 using LifeOS.Infrastructure;

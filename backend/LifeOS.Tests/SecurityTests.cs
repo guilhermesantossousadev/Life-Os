@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using LifeOS.Api.Auth;
+using LifeOS.Api.Authentication;
 using LifeOS.Api.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
