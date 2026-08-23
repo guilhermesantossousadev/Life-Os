@@ -21,7 +21,7 @@ Render e um projeto Supabase para PostgreSQL, Auth e Storage.
 - [x] RLS, policies e bucket privado `documents` incluídos nas migrations.
 - [x] Código organizado em camadas de Clean Architecture no frontend e backend.
 - [x] Documentação técnica separada por arquitetura, desenvolvimento, API, segurança e deploy.
-- [ ] Alterações atuais publicadas na branch principal e CI aprovada.
+- [x] Clean Architecture publicada na branch `main` (`0f5fe2e`) e CI aprovada.
 - [ ] Projeto Supabase criado ou selecionado.
 - [ ] Serviço Render provisionado.
 - [ ] Secrets de produção configurados.
