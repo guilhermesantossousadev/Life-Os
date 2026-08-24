@@ -43,3 +43,6 @@ A anon/publishable key é pública por desenho; a segurança depende de Auth, RL
 - valide isolamento com duas contas antes da liberação.
 
 Não abra issue pública com credenciais ou dados pessoais. Revogue material exposto e comunique o mantenedor por canal privado.
+
+Para triagem, rotação e restauração, siga [OPERATIONS.md](OPERATIONS.md). Para o
+teste de isolamento com duas contas, siga [TESTING.md](TESTING.md).

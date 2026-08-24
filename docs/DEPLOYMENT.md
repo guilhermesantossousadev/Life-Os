@@ -23,6 +23,16 @@ O Blueprint já define audience, bucket e migrations na inicialização.
 5. Cadastre a URL HTTPS como Site URL e Redirect URL no Supabase Auth.
 6. Execute smoke test e E2E com conta exclusiva.
 
+`Database__MigrateOnStartup=true` aplica também a migration de RLS, policies e
+Storage. Não execute o SQL avulso de `supabase/migrations` depois dela. Antes de
+seguir, confira no painel que as três migrations foram aplicadas, o bucket é
+privado e as policies existem.
+
+No primeiro Blueprint, o Render solicita os valores marcados com `sync: false`.
+Em um Blueprint já existente, novos valores desse tipo devem ser incluídos
+manualmente no serviço. Os valores públicos `VITE_*` são argumentos do build
+Docker; qualquer alteração exige rebuild.
+
 ## Verificação
 
 - `/health` responde 200 e `{"status":"healthy"}`;
@@ -39,4 +49,6 @@ Republique um commit validado. Não reverta migrations destrutivamente sem backu
 
 Use `/health` para disponibilidade e `traceId` para correlacionar erros. Não registre payloads pessoais, JWTs, signed URLs ou secrets.
 
-O checklist detalhado está em [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
+O checklist detalhado está em [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md),
+o aceite em [TESTING.md](TESTING.md) e o runbook em
+[OPERATIONS.md](OPERATIONS.md).

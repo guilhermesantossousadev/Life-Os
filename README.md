@@ -55,7 +55,11 @@ dotnet ef database update \
   --startup-project backend/LifeOS.Api
 ```
 
-Depois, execute [0002_rls_storage.sql](supabase/migrations/0002_rls_storage.sql) no SQL Editor do Supabase para garantir RLS, policies por usuário e o bucket privado `documents`. Em produção, `Database__MigrateOnStartup=true` aplica as migrations na inicialização.
+Esse comando também executa `20260822124000_EnableSupabaseSecurity`, que configura
+RLS, policies por usuário e o bucket privado `documents`. Em produção,
+`Database__MigrateOnStartup=true` aplica as migrations na inicialização. O arquivo
+[0002_rls_storage.sql](supabase/migrations/0002_rls_storage.sql) é uma alternativa
+manual de referência e não deve ser executado novamente após a migration EF.
 
 ## Validação
 
@@ -92,7 +96,9 @@ O Compose inicia PostgreSQL, API e frontend. Supabase ainda é necessário para 
 - [Desenvolvimento](docs/DEVELOPMENT.md): configuração, comandos e convenções.
 - [API](docs/API.md): autenticação, contratos, recursos e erros.
 - [Segurança](docs/SECURITY.md): ownership, secrets e arquivos.
+- [Testes](docs/TESTING.md): matriz de validação, E2E e aceite manual.
 - [Deploy](docs/DEPLOYMENT.md): containers, Render, Supabase e rollback.
+- [Operação](docs/OPERATIONS.md): monitoramento, incidentes, backup e rotação.
 - [Contexto atual](CONTEXT.md): escopo funcional e estado verificável.
 - [Checklist de publicação](IMPLEMENTATION_PLAN.md): tarefas operacionais restantes.
 

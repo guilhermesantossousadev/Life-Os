@@ -1,119 +1,144 @@
 # Plano de implementação e publicação
 
-Atualizado em 23 de agosto de 2026.
+Atualizado em 24 de agosto de 2026.
 
-## Objetivo
+## Objetivo e escopo
 
-Colocar o Life OS em funcionamento em uma URL HTTPS, com frontend, API, banco,
-autenticação e documentos privados. O caminho preparado usa um serviço Docker no
-Render e um projeto Supabase para PostgreSQL, Auth e Storage.
+Publicar o Life OS em uma URL HTTPS com frontend, API, PostgreSQL, Supabase Auth e
+Storage privado. O repositório está preparado para um único serviço Docker no
+Render e um projeto Supabase.
 
-## Estado atual
+Este é o checklist vivo do lançamento. Um item só deve ser marcado como concluído
+quando houver evidência verificável no repositório ou no provedor. “Preparado no
+código” não significa “aplicado em produção”.
 
-- [x] Frontend React/Vite compilando para produção.
-- [x] API ASP.NET Core compilando em Release.
-- [x] 4 testes do frontend e 14 testes do backend aprovados.
-- [x] 12 cenários E2E catalogados para desktop e mobile.
-- [x] Frontend e API configurados para a mesma origem HTTPS.
-- [x] Imagem conjunta definida em `Dockerfile.production`.
-- [x] Blueprint gratuito definido em `render.yaml`.
-- [x] Migrations automatizadas na inicialização de produção.
-- [x] RLS, policies e bucket privado `documents` incluídos nas migrations.
-- [x] Código organizado em camadas de Clean Architecture no frontend e backend.
-- [x] Documentação técnica separada por arquitetura, desenvolvimento, API, segurança e deploy.
-- [x] Clean Architecture publicada na branch `main` (`0f5fe2e`) e CI aprovada.
-- [ ] Projeto Supabase criado ou selecionado.
-- [ ] Serviço Render provisionado.
-- [ ] Secrets de produção configurados.
-- [ ] URLs de autenticação configuradas no Supabase.
-- [ ] Ambiente publicado validado ponta a ponta.
+## Resumo executivo
 
-## Pré-requisitos para retomar
+| Frente | Estado | Próxima ação |
+| --- | --- | --- |
+| Aplicação e arquitetura | Concluída | preservar CI e contratos |
+| Testes locais e CI | Concluída | repetir antes do deploy |
+| Infraestrutura como código | Concluída | criar o Blueprint |
+| Supabase remoto | Não verificado | criar/selecionar o projeto |
+| Render remoto | Não verificado | provisionar o serviço |
+| Aceite de produção | Pendente | executar smoke test e E2E |
+| Rotina operacional | Pendente | definir backup, alertas e responsáveis |
 
-1. Conectar um navegador em **Settings > Computer use**.
-2. Entrar no [Supabase Dashboard](https://supabase.com/dashboard).
-3. Entrar no [Render Dashboard](https://dashboard.render.com).
-4. Conectar ao Render a conta GitHub que tem acesso ao repositório
-   `guilhermesantossousadev/Life-Os`.
-5. Não enviar senhas, tokens ou chaves pelo chat e nunca adicioná-los ao Git.
+## Evidências do repositório
 
-## Fase 1 — Supabase
+Validação repetida localmente em 24 de agosto de 2026:
 
-- [ ] Criar um projeto chamado `Life OS`, preferencialmente em uma região próxima
-  dos usuários.
-- [ ] Manter o projeto no plano gratuito inicialmente, salvo decisão explícita de
-  contratar um plano pago.
+- [x] `npm run typecheck` aprovado;
+- [x] 7 testes Vitest aprovados em 4 arquivos;
+- [x] `npm run build` aprovado;
+- [x] 14 testes .NET aprovados em Release;
+- [x] 12 cenários Playwright listados, 6 fluxos em desktop e mobile;
+- [x] CI do commit `b38fccc` aprovada no GitHub;
+- [x] frontend e API empacotados na mesma imagem/origem em
+  `Dockerfile.production`;
+- [x] Blueprint Render em `render.yaml`, com health check em `/health`;
+- [x] migrations EF com schema, constraints, RLS, policies e bucket privado
+  `documents`;
+- [x] exemplos de ambiente sem credenciais reais;
+- [x] documentação de arquitetura, API, desenvolvimento, segurança, testes,
+  deploy e operação.
+
+Os cenários E2E foram apenas catalogados nessa validação: executá-los exige uma
+conta exclusiva e um ambiente integrado. As mensagens `NU1900` observadas no teste
+.NET vieram da indisponibilidade do índice de vulnerabilidades do NuGet e não de
+falha de compilação ou teste.
+
+## Decisões antes do provisionamento
+
+- [ ] Escolher a região do Supabase mais próxima dos usuários e confirmar se a
+  região `virginia` do Render continua adequada.
+- [ ] Decidir se cadastro exige confirmação por e-mail.
+- [ ] Definir quem guarda e pode rotacionar senha do banco e service role key.
+- [ ] Definir uma conta E2E exclusiva, sem dados pessoais.
+- [ ] Aceitar temporariamente as limitações do plano gratuito ou escolher planos
+  com disponibilidade e backup compatíveis com o uso esperado.
+
+## Fase 1 — Configurar o Supabase
+
+- [ ] Criar ou selecionar o projeto `Life OS`.
 - [ ] Guardar a senha do banco em um gerenciador de senhas.
-- [ ] Em **Project Settings > API**, obter:
+- [ ] Obter em configurações do projeto:
   - Project URL;
   - publishable/anon key;
-  - service role key.
-- [ ] Em **Project Settings > Database**, copiar uma connection string compatível
-  com IPv4, preferencialmente do Transaction Pooler, com SSL habilitado.
-- [ ] Confirmar que Email/Password está habilitado em **Authentication > Providers**.
-- [ ] Decidir se novos cadastros exigirão confirmação por e-mail.
+  - service role key;
+  - connection string PostgreSQL com SSL e conectividade compatível com o Render,
+    preferencialmente pelo pooler quando necessário.
+- [ ] Confirmar que Email/Password está habilitado no Auth.
+- [ ] Aplicar as três migrations EF, incluindo
+  `20260822124000_EnableSupabaseSecurity`.
+- [ ] Conferir no banco que RLS está habilitado nas tabelas pessoais.
+- [ ] Conferir no Storage que `documents` é privado, limitado a 20 MB e possui as
+  quatro policies por proprietário.
+- [ ] Não executar `supabase/migrations/0002_rls_storage.sql` depois da migration
+  EF; o arquivo é uma alternativa manual de referência para ambientes onde a EF
+  não possa executar essa etapa.
 
-Valores que serão usados no Render:
+Valores exigidos pelo Blueprint:
 
-| Variável | Origem | Sensível |
+| Variável | Origem | Exposição |
 | --- | --- | --- |
-| `ConnectionStrings__DefaultConnection` | Connection string do banco Supabase | Sim |
-| `Supabase__Url` | Project URL | Não |
-| `Supabase__ServiceRoleKey` | Service role key | Sim |
-| `VITE_SUPABASE_URL` | Mesmo Project URL | Não |
-| `VITE_SUPABASE_ANON_KEY` | Publishable/anon key | Pública no frontend |
+| `ConnectionStrings__DefaultConnection` | connection string do Supabase | secreta, somente API |
+| `Supabase__Url` | Project URL | não secreta |
+| `Supabase__ServiceRoleKey` | service role key | secreta, somente API |
+| `VITE_SUPABASE_URL` | Project URL | pública no bundle |
+| `VITE_SUPABASE_ANON_KEY` | publishable/anon key | pública no bundle |
 
-## Fase 2 — Render
+Nunca use a service role key em uma variável `VITE_*`.
 
-- [ ] No Render, criar um novo **Blueprint** a partir do repositório
-  `https://github.com/guilhermesantossousadev/Life-Os`.
-- [ ] Confirmar que o Render encontrou `render.yaml` na raiz.
-- [ ] Conferir antes de provisionar:
-  - serviço `life-os-guilhermesantos`;
-  - runtime Docker;
-  - `Dockerfile.production`;
-  - região Virginia;
-  - plano Free;
-  - health check `/health`.
-- [ ] Preencher os cinco valores solicitados pelo Blueprint usando os valores da
-  Fase 1.
-- [ ] Iniciar o deploy e acompanhar o build até o serviço ficar `Live`.
-- [ ] Confirmar nos logs que todas as migrations foram aplicadas.
-- [ ] Guardar a URL final `https://<servico>.onrender.com`.
+## Fase 2 — Provisionar o Render
 
-O primeiro início pode demorar porque o container compila o frontend e a API e
-aplica as migrations. Em instâncias gratuitas, novos acessos também podem aguardar
-o serviço sair do estado de suspensão.
+- [ ] Entrar no Render com acesso ao repositório
+  `guilhermesantossousadev/Life-Os`.
+- [ ] Criar um Blueprint a partir do `render.yaml` da branch `main`.
+- [ ] Conferir serviço `life-os-guilhermesantos`, runtime Docker,
+  `Dockerfile.production`, plano/região escolhidos e health check `/health`.
+- [ ] Preencher os cinco valores com `sync: false` durante a criação inicial.
+- [ ] Confirmar que nenhuma credencial foi escrita em `render.yaml`, logs ou Git.
+- [ ] Iniciar o deploy e acompanhar build, migrations e health check até `Live`.
+- [ ] Registrar a URL final HTTPS e o commit implantado, sem registrar secrets.
 
-## Fase 3 — URLs de autenticação
+O Render disponibiliza variáveis do serviço Docker como argumentos de build. É por
+isso que os dois valores públicos `VITE_*` entram no bundle. Alterá-los exige novo
+build/deploy. Em sincronizações posteriores do Blueprint, novos campos com
+`sync: false` precisam ser preenchidos manualmente no serviço.
 
-Depois que a URL final do Render existir:
+## Fase 3 — Configurar redirects do Auth
 
-- [ ] Abrir **Supabase > Authentication > URL Configuration**.
-- [ ] Definir **Site URL** como a URL HTTPS do Render, sem barra final.
-- [ ] Adicionar a mesma origem em **Redirect URLs**.
-- [ ] Se um domínio próprio for configurado, adicionar também a URL HTTPS dele.
-- [ ] Nunca permitir curingas amplos em produção quando a URL exata estiver
-  disponível.
+Depois que a URL final existir:
 
-## Fase 4 — Validação do ambiente publicado
+- [ ] Definir **Site URL** como a origem HTTPS de produção, sem barra final.
+- [ ] Adicionar a origem/rotas necessárias à lista de **Redirect URLs**.
+- [ ] Manter localhost somente se ainda for necessário ao desenvolvimento.
+- [ ] Adicionar o domínio próprio quando existir e remover origens obsoletas.
+- [ ] Evitar curingas amplos em produção quando URLs exatas forem suficientes.
+- [ ] Validar os links reais de confirmação e recuperação de senha.
 
-- [ ] Abrir `https://<servico>.onrender.com/health` e confirmar HTTP 200 com
-  `{"status":"healthy"}`.
-- [ ] Abrir a página inicial e confirmar que não aparece “Configuração necessária”.
-- [ ] Criar uma conta exclusiva de teste.
-- [ ] Confirmar cadastro, login, logout e recuperação de senha.
-- [ ] Criar, editar, concluir e excluir uma tarefa.
-- [ ] Criar uma transação financeira e conferir os totais.
-- [ ] Criar evento, meta, projeto e nota.
-- [ ] Enviar, baixar e excluir um documento permitido.
-- [ ] Confirmar que outro usuário não consegue acessar dados ou documentos da conta
-  de teste.
-- [ ] Repetir os fluxos principais em uma viewport móvel.
-- [ ] Inspecionar os logs do Render e do Supabase procurando erros 5xx ou falhas de
-  autenticação.
+Referências oficiais: [Blueprints do Render](https://render.com/docs/blueprint-spec),
+[Docker no Render](https://render.com/docs/docker) e
+[Redirect URLs do Supabase](https://supabase.com/docs/guides/auth/redirect-urls).
 
-Para executar a suíte E2E sem guardar credenciais no repositório:
+## Fase 4 — Aceite de produção
+
+Execute com uma conta exclusiva e registre data, commit e resultado conforme
+[TESTING.md](docs/TESTING.md).
+
+- [ ] `/health` responde HTTP 200 com `{"status":"healthy"}`.
+- [ ] Página inicial carrega sem “Configuração necessária”.
+- [ ] Cadastro, confirmação (se habilitada), login, logout e recuperação funcionam.
+- [ ] Tarefa pode ser criada, editada, concluída e excluída.
+- [ ] Transação atualiza os totais financeiros corretamente.
+- [ ] Evento, meta, projeto e nota persistem após novo login.
+- [ ] Documento permitido pode ser enviado, baixado e excluído.
+- [ ] Arquivo inválido ou maior que 20 MB é rejeitado.
+- [ ] Usuário B não acessa registros, relações ou documentos do usuário A.
+- [ ] Rotas internas funcionam após refresh direto.
+- [ ] Os seis fluxos E2E passam em desktop e mobile.
+- [ ] Logs não mostram 5xx recorrente, falha de migration ou erro de autenticação.
 
 ```bash
 E2E_BASE_URL=https://<servico>.onrender.com \
@@ -122,53 +147,56 @@ E2E_PASSWORD=<senha-da-conta-de-teste> \
 npm run test:e2e
 ```
 
-## Fase 5 — Operação e segurança
+Os E2E criam dados e excluem apenas o documento enviado; limpe os demais registros
+da conta de teste depois da execução.
 
-Estas ações não bloqueiam o primeiro acesso, mas devem ser avaliadas antes de
-tratar o sistema como produção permanente:
+## Fase 5 — Preparar operação
 
-- [ ] Configurar SMTP próprio no Supabase para e-mails de confirmação e recuperação.
-- [ ] Definir política de backup; o plano gratuito não deve ser a única cópia de
-  dados importantes.
-- [ ] Decidir se o serviço Render deve sair do plano gratuito para evitar suspensão
-  por inatividade.
-- [ ] Configurar domínio próprio e atualizar as URLs do Supabase.
-- [ ] Configurar monitoramento externo para `/health`.
-- [ ] Revisar logs periodicamente sem registrar tokens ou dados pessoais.
-- [ ] Rotacionar service role key e senha do banco se houver suspeita de exposição.
-- [ ] Manter dependências e imagens Docker atualizadas.
-- [ ] Criar exportações periódicas dos dados estruturados pela tela de configurações.
+Antes de tratar o ambiente como produção permanente, seguir
+[OPERATIONS.md](docs/OPERATIONS.md) e concluir:
 
-## Diagnóstico rápido
+- [ ] configurar SMTP próprio para confirmação e recuperação;
+- [ ] definir backup, retenção e teste periódico de restauração;
+- [ ] configurar monitoramento externo de `/health` e canal de alerta;
+- [ ] definir responsável por incidentes e rotação de credenciais;
+- [ ] decidir sobre plano sem suspensão por inatividade;
+- [ ] configurar domínio próprio e atualizar redirects/CORS;
+- [ ] programar revisão de dependências, logs e capacidade;
+- [ ] validar exportações periódicas de dados estruturados.
 
-| Sintoma | Verificação inicial |
-| --- | --- |
-| `/health` retorna 503 | Connection string, disponibilidade e logs do PostgreSQL |
-| Loop de redirecionamento HTTPS | `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` no Render |
-| Login falha | Project URL, anon key, provider Email e URLs de Auth |
-| API retorna 401 | Emissor/audiência do JWT e sessão Supabase do navegador |
-| Upload falha | Service role key, migration de Storage, MIME e limite de 20 MB |
-| Página mostra configuração necessária | `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no build |
-| Rota interna retorna 404 | Confirmar que o deploy usa `Dockerfile.production` |
+## Bloqueios atuais
 
-## Recuperação e rollback
-
-- Um deploy com falha não deve substituir o último deploy saudável no Render.
-- Para voltar o código, usar o recurso de rollback/redeploy do Render apontando para
-  um commit previamente aprovado; não reverter migrations destrutivamente sem um
-  backup validado.
-- Antes de alterar banco, Auth ou Storage após o lançamento, gerar um backup e
-  revisar o impacto em dados existentes.
+O repositório não contém e não deve conter evidência de credenciais ou acesso aos
+painéis. Permanecem não verificados: existência do projeto Supabase, aplicação das
+migrations no ambiente remoto, serviço Render, redirects e aceite ponta a ponta.
+Essas etapas exigem sessões autenticadas nos provedores.
 
 ## Definição de pronto
 
-O lançamento estará concluído quando:
+O lançamento termina somente quando:
 
-1. o deploy estiver `Live` em HTTPS;
-2. `/health` estiver saudável;
-3. cadastro/login funcionarem;
-4. dados persistirem após novo login;
-5. upload, download e exclusão de documentos funcionarem;
-6. isolamento entre dois usuários estiver confirmado;
-7. testes E2E críticos passarem em desktop e mobile;
-8. não houver erro recorrente nos logs do Render ou Supabase.
+1. o commit aprovado está `Live` em HTTPS;
+2. health check e migrations estão saudáveis;
+3. Auth e persistência sobrevivem a um novo login;
+4. documentos privados funcionam do upload à exclusão;
+5. isolamento entre duas contas está comprovado;
+6. E2E críticos passam em desktop e mobile;
+7. não há erros recorrentes nos logs;
+8. backup, monitoramento, rollback e responsáveis estão definidos;
+9. a evidência do aceite abaixo foi preenchida.
+
+## Registro de aceite
+
+Preencher sem dados pessoais ou segredos:
+
+| Campo | Valor |
+| --- | --- |
+| Data/hora e fuso | Pendente |
+| URL de produção | Pendente |
+| Commit implantado | Pendente |
+| Responsável pelo aceite | Pendente |
+| Health check | Pendente |
+| E2E desktop/mobile | Pendente |
+| Isolamento entre usuários | Pendente |
+| Backup/restauração | Pendente |
+| Pendências aceitas | Pendente |

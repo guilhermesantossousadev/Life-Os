@@ -69,6 +69,11 @@ dotnet ef database update \
 
 Não edite migrations aplicadas. Crie uma migration corretiva e revise SQL destrutivo.
 
+A migration `20260822124000_EnableSupabaseSecurity` aplica RLS, policies e configura
+o bucket privado. Não execute depois dela o SQL avulso em
+`supabase/migrations/0002_rls_storage.sql`; ele existe como alternativa manual de
+referência para ambientes onde essa etapa não possa ser aplicada pela EF.
+
 ## Convenções
 
 - Use alias `@/` em imports entre diretórios do frontend.
@@ -87,5 +92,7 @@ Não edite migrations aplicadas. Crie uma migration corretiva e revise SQL destr
 4. Adicione testes de regra e isolamento.
 5. Rode typecheck, testes e builds.
 6. Atualize documentação e exemplos de ambiente.
+
+Consulte [TESTING.md](TESTING.md) para a matriz completa e o aceite integrado.
 
 `Templates/Figma/` é uma referência protegida e não deve ser alterada no trabalho comum.

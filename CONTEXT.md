@@ -1,8 +1,8 @@
 # Contexto do Life OS
 
-**Versão documental:** 3.0.0
+**Versão documental:** 3.1.0
 
-**Data de referência:** 2026-08-23
+**Data de referência:** 2026-08-24
 
 **Idioma/fuso:** `pt-BR` / `America/Sao_Paulo`
 
@@ -83,10 +83,19 @@ Datas civis não devem ser construídas com `new Date("YYYY-MM-DD")`. Use `src/s
 
 ## Execução e validação
 
-Os comandos canônicos estão em [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). O frontend possui typecheck estrito, Vitest, build Vite e cenários Playwright. O backend possui build/testes .NET. E2E completo exige Supabase e conta de teste; deploy exige credenciais no provedor.
+Os comandos canônicos estão em [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) e a
+matriz de aceite está em [docs/TESTING.md](docs/TESTING.md). O frontend possui
+typecheck estrito, Vitest, build Vite e cenários Playwright. O backend possui
+build/testes .NET. E2E completo exige Supabase e conta de teste; deploy exige
+credenciais no provedor.
 
 O estado de validação desta refatoração deve ser lido no handoff/commit correspondente; este documento não congela contagens de testes, pois elas mudam com a suíte.
 
 ## Estado operacional
 
-Existem Dockerfiles, Compose, Blueprint Render, exemplos de ambiente e CI. Não há secrets reais versionados nem evidência local de que migrations/RLS tenham sido aplicadas em um projeto remoto. Para publicar, siga [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) e [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+Existem Dockerfiles, Compose, Blueprint Render, exemplos de ambiente e CI. Não há
+secrets reais versionados nem evidência local de que migrations/RLS tenham sido
+aplicadas em um projeto remoto. Para publicar, siga
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) e
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md); para operar e responder a
+incidentes, siga [docs/OPERATIONS.md](docs/OPERATIONS.md).
