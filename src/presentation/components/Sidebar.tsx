@@ -1,16 +1,28 @@
 import {
-  LayoutDashboard, Inbox, Calendar, CheckSquare,
-  Target, FolderKanban, FileText,
-  Wallet, BookOpen, Briefcase, Package, Archive,
-  MessageSquare, Settings, ChevronLeft, ChevronRight,
-} from "lucide-react";
-import type { Page } from "@/domain/navigation";
+  LayoutDashboard,
+  Inbox,
+  Calendar,
+  CheckSquare,
+  Target,
+  FolderKanban,
+  FileText,
+  Wallet,
+  BookOpen,
+  Briefcase,
+  Package,
+  Archive,
+  MessageSquare,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
+import type { Page } from "@/domain/navigation"
 
 interface SidebarProps {
-  current: Page;
-  onNavigate: (page: Page) => void;
-  collapsed: boolean;
-  onToggle: () => void;
+  current: Page
+  onNavigate: (page: Page) => void
+  collapsed: boolean
+  onToggle: () => void
 }
 
 const groups = [
@@ -48,9 +60,14 @@ const groups = [
       { id: "settings" as Page, label: "Configurações", icon: Settings },
     ],
   },
-];
+]
 
-export default function Sidebar({ current, onNavigate, collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({
+  current,
+  onNavigate,
+  collapsed,
+  onToggle,
+}: SidebarProps) {
   return (
     <aside
       style={{
@@ -61,12 +78,26 @@ export default function Sidebar({ current, onNavigate, collapsed, onToggle }: Si
       className="app-sidebar h-full bg-white border-r border-[var(--border)] flex flex-col flex-shrink-0 overflow-hidden"
     >
       {/* Logo area */}
-      <div className={`flex items-center h-14 px-4 border-b border-[var(--border)] gap-3 flex-shrink-0 ${collapsed ? "justify-center px-0" : ""}`}>
+      <div
+        className={`flex items-center h-14 px-4 border-b border-[var(--border)] gap-3 flex-shrink-0 ${
+          collapsed ? "justify-center px-0" : ""
+        }`}
+      >
         <div className="w-7 h-7 rounded-[6px] bg-[var(--primary)] flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-xs font-bold" style={{ fontFamily: "var(--font-ui)" }}>L</span>
+          <span
+            className="text-white text-xs font-bold"
+            style={{ fontFamily: "var(--font-ui)" }}
+          >
+            L
+          </span>
         </div>
         {!collapsed && (
-          <span className="font-semibold text-[15px] text-[var(--foreground)]" style={{ fontFamily: "var(--font-ui)" }}>Life OS</span>
+          <span
+            className="font-semibold text-[15px] text-[var(--foreground)]"
+            style={{ fontFamily: "var(--font-ui)" }}
+          >
+            Life OS
+          </span>
         )}
       </div>
 
@@ -80,8 +111,8 @@ export default function Sidebar({ current, onNavigate, collapsed, onToggle }: Si
               </p>
             )}
             {group.items.map((item) => {
-              const Icon = item.icon;
-              const active = current === item.id;
+              const Icon = item.icon
+              const active = current === item.id
               return (
                 <button
                   key={item.id}
@@ -96,7 +127,7 @@ export default function Sidebar({ current, onNavigate, collapsed, onToggle }: Si
                   <Icon size={15} className="flex-shrink-0" />
                   {!collapsed && <span>{item.label}</span>}
                 </button>
-              );
+              )
             })}
           </div>
         ))}
@@ -106,11 +137,20 @@ export default function Sidebar({ current, onNavigate, collapsed, onToggle }: Si
       <div className="border-t border-[var(--border)] p-2">
         <button
           onClick={onToggle}
-          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors text-[13px] ${collapsed ? "justify-center" : ""}`}
+          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors text-[13px] ${
+            collapsed ? "justify-center" : ""
+          }`}
         >
-          {collapsed ? <ChevronRight size={14} /> : <><ChevronLeft size={14} /><span className="text-xs">Recolher</span></>}
+          {collapsed ? (
+            <ChevronRight size={14} />
+          ) : (
+            <>
+              <ChevronLeft size={14} />
+              <span className="text-xs">Recolher</span>
+            </>
+          )}
         </button>
       </div>
     </aside>
-  );
+  )
 }

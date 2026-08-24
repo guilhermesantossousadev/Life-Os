@@ -38,8 +38,14 @@ public sealed class DocumentsController(LifeOsDbContext db, ICurrentUser current
         await storage.UploadAsync(storagePath, stream, file.ContentType, ct);
         var document = new LifeOS.Domain.Document
         {
-            Id = id, UserId = currentUser.Id, Name = string.IsNullOrWhiteSpace(name) ? Path.GetFileNameWithoutExtension(safeFilename) : name.Trim(),
-            OriginalFilename = safeFilename, StoragePath = storagePath, MimeType = file.ContentType, SizeBytes = file.Length, CategoryId = categoryId
+            Id = id,
+            UserId = currentUser.Id,
+            Name = string.IsNullOrWhiteSpace(name) ? Path.GetFileNameWithoutExtension(safeFilename) : name.Trim(),
+            OriginalFilename = safeFilename,
+            StoragePath = storagePath,
+            MimeType = file.ContentType,
+            SizeBytes = file.Length,
+            CategoryId = categoryId
         };
         db.Documents.Add(document);
         try { await db.SaveChangesAsync(ct); }

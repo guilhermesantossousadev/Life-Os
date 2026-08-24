@@ -1,15 +1,1 @@
-export type Page =
-  | "dashboard"
-  | "inbox"
-  | "agenda"
-  | "tasks"
-  | "goals"
-  | "projects"
-  | "notes"
-  | "finances"
-  | "studies"
-  | "career"
-  | "assets"
-  | "documents"
-  | "assistant"
-  | "settings";
+export type Page = "dashboard" | "inbox" | "agenda" | "tasks" | "goals" | "projects" | "notes" | "finances" | "studies" | "career" | "assets" | "documents" | "assistant" | "settings"

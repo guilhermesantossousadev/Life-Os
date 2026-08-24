@@ -41,9 +41,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true, ValidIssuer = issuer,
-        ValidateAudience = true, ValidAudience = builder.Configuration["Supabase:JwtAudience"] ?? "authenticated",
-        ValidateLifetime = true, ValidateIssuerSigningKey = true, ClockSkew = TimeSpan.FromSeconds(30),
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["Supabase:JwtAudience"] ?? "authenticated",
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ClockSkew = TimeSpan.FromSeconds(30),
         NameClaimType = "sub",
         IssuerValidator = (tokenIssuer, _, _) =>
         {

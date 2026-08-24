@@ -16,7 +16,8 @@ namespace LifeOS.Api.Controllers;
 [Route("api/v1/projects")] public sealed class ProjectsController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<Project>(db, user);
 [Route("api/v1/notes")] public sealed class NotesController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<Note>(db, user);
 [Route("api/v1/categories")] public sealed class CategoriesController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<Category>(db, user);
-[Route("api/v1/tags")] public sealed class TagsController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<Tag>(db, user)
+[Route("api/v1/tags")]
+public sealed class TagsController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<Tag>(db, user)
 {
     [HttpPost("ensure")]
     public async Task<ActionResult<Tag>> Ensure([FromBody] EnsureTagRequest request, CancellationToken ct)
@@ -32,7 +33,8 @@ public sealed record EnsureTagRequest(string Name);
 [Route("api/v1/finances/accounts")] public sealed class AccountsController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<FinancialAccount>(db, user);
 [Route("api/v1/finances/transactions")] public sealed class TransactionsController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<FinancialTransaction>(db, user);
 [Route("api/v1/finances/cards")] public sealed class CardsController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<CreditCard>(db, user);
-[Route("api/v1/finances/installment-purchases")] public sealed class InstallmentPurchasesController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<InstallmentPurchase>(db, user)
+[Route("api/v1/finances/installment-purchases")]
+public sealed class InstallmentPurchasesController(LifeOsDbContext db, ICurrentUser user) : UserOwnedCrudController<InstallmentPurchase>(db, user)
 {
     public override async Task<ActionResult<InstallmentPurchase>> Create(InstallmentPurchase input, CancellationToken cancellationToken)
     {
@@ -44,7 +46,10 @@ public sealed record EnsureTagRequest(string Name);
         {
             Db.Installments.Add(new Installment
             {
-                UserId = UserId, PurchaseId = input.Id, Number = number, Amount = amounts[number - 1],
+                UserId = UserId,
+                PurchaseId = input.Id,
+                Number = number,
+                Amount = amounts[number - 1],
                 DueDate = input.PurchaseDate.AddMonths(number - 1)
             });
         }

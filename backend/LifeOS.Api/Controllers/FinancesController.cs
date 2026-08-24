@@ -44,14 +44,20 @@ public sealed class FinancesController(LifeOsDbContext db, ICurrentUser currentU
         var allMovements = await db.Transactions.AsNoTracking().Where(x => x.UserId == currentUser.Id).ToListAsync(ct);
         var balances = accounts.Select(account => new
         {
-            account.Id, account.Name,
+            account.Id,
+            account.Name,
             Balance = FinanceMath.Balance(account.InitialBalance, allMovements.Where(x => x.AccountId == account.Id).Select(x => (x.Type, x.Amount, x.Notes)))
         });
         var categories = await db.Categories.AsNoTracking().Where(x => x.UserId == currentUser.Id).ToDictionaryAsync(x => x.Id, x => x.Name, ct);
         return Ok(new
         {
-            month = selectedMonth, year = selectedYear, incomes, expenses, result = incomes - expenses,
-            balance = balances.Sum(x => x.Balance), accounts = balances,
+            month = selectedMonth,
+            year = selectedYear,
+            incomes,
+            expenses,
+            result = incomes - expenses,
+            balance = balances.Sum(x => x.Balance),
+            accounts = balances,
             spendingByCategory = rows.Where(x => x.Type == "expense").GroupBy(x => x.CategoryId).Select(g => new { category = g.Key.HasValue && categories.TryGetValue(g.Key.Value, out var name) ? name : "Sem categoria", amount = g.Sum(x => x.Amount) })
         });
     }

@@ -12,8 +12,12 @@ build/
 .playwright/
 playwright-report/
 test-results/
+coverage/
+**/TestResults/
+*.trx
 *.tsbuildinfo
 *.log
+.eslintcache
 .DS_Store
 .tmp-*
 vite.config.*.timestamp-*
